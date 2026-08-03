@@ -16,6 +16,28 @@
       stroke: #ffd000 !important;
       stroke-width: 5 !important;
     }
+    .est-en-conflit {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: pulsation-conflit 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes pulsation-conflit {
+      0% {
+        stroke: #b33a2e;
+        stroke-width: 3;
+        transform: scale(1);
+        filter: drop-shadow(0 0 2px #b33a2e);
+      }
+      100% {
+        stroke: #174f8a;
+        stroke-width: 6;
+        transform: scale(1.35);
+        filter: drop-shadow(0 0 7px #174f8a);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .est-en-conflit { animation-duration: 1.6s; }
+    }
     #indicateur-selection {
       pointer-events: none;
     }
@@ -302,7 +324,10 @@
             restaurerAttribut(etat.segment, 'stroke', etat.stroke);
             restaurerAttribut(etat.segment, 'stroke-width', etat.strokeWidth);
           });
-          if (Object.hasOwn(action, 'conflitAvant')) conflitActif = action.conflitAvant;
+          if (Object.hasOwn(action, 'conflitAvant')) {
+            conflitActif = action.conflitAvant;
+            action.noeud.classList.toggle('est-en-conflit', conflitActif?.lieu === action.noeud);
+          }
           let message = `${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`;
           if (action.type === 'liaison-alliee') message = `${action.segment.id} restaurée à son état précédent`;
           if (action.type === 'resolution-conflit') message = `Résolution annulée — ${action.noeud.id} est de nouveau en conflit`;
@@ -363,6 +388,7 @@
           lieu.dataset.owner = '';
           lieu.dataset.couleur = '';
           lieu.setAttribute('fill', '#ffffff');
+          lieu.classList.add('est-en-conflit');
           conflitActif = conflit;
           annulerDepart(`${lieu.id} est en conflit — cliquez sur ce lieu pour effectuer le tirage 50/50`);
           actualiserBoutonAnnuler();
@@ -400,6 +426,7 @@
           conflit.lieu.dataset.owner = vainqueurOwner;
           conflit.lieu.dataset.couleur = vainqueurCouleur;
           conflit.lieu.setAttribute('fill', vainqueurCouleur);
+          conflit.lieu.classList.remove('est-en-conflit');
           segmentsNeutralises.forEach(etat => {
             etat.segment.dataset.owner = '';
             etat.segment.setAttribute('stroke', couleurRouteNeutre);
