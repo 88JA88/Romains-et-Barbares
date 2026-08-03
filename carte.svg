@@ -21,6 +21,14 @@
       transform-origin: center;
       animation: pulsation-conflit 0.8s ease-in-out infinite alternate;
     }
+    .segment.est-reseau-atténue {
+      opacity: 0.16;
+    }
+    .segment.est-reseau-selectionne {
+      opacity: 1;
+      stroke-width: 5 !important;
+      filter: drop-shadow(0 0 4px #ffd000);
+    }
     @keyframes pulsation-conflit {
       0% {
         stroke: #b33a2e;
@@ -204,6 +212,7 @@
         const epaisseurRouteNeutre = '1';
         const epaisseurRouteControlee = '2.5';
         const historique = [];
+        const segmentsEnSurbrillance = new Set();
         let depart = null;
         let conflitActif = null;
 
@@ -244,6 +253,74 @@
           return segments.filter(segment =>
             segment.dataset.a === pointId || segment.dataset.b === pointId
           );
+        }
+
+        function actualiserSurbrillanceReseau() {
+          segments.forEach(segment => {
+            segment.classList.remove('est-reseau-selectionne', 'est-reseau-atténue');
+            if (!segmentsEnSurbrillance.size) return;
+            segment.classList.add(segmentsEnSurbrillance.has(segment)
+              ? 'est-reseau-selectionne'
+              : 'est-reseau-atténue');
+          });
+        }
+
+        function effacerSurbrillanceReseau() {
+          segmentsEnSurbrillance.clear();
+          actualiserSurbrillanceReseau();
+        }
+
+        function recenserChaineDuSegment(segmentDepart) {
+          const owner = segmentDepart.dataset.owner;
+          if (!owner) return new Set();
+
+          const pointsParId = new Map(points.map(point => [point.id, point]));
+          const segmentsVisites = new Set([segmentDepart]);
+          const pointsAVisiter = [segmentDepart.dataset.a, segmentDepart.dataset.b];
+          const pointsVisites = new Set();
+
+          while (pointsAVisiter.length) {
+            const pointId = pointsAVisiter.shift();
+            const point = pointsParId.get(pointId);
+            if (!point || pointsVisites.has(pointId) || point.dataset.owner !== owner) continue;
+
+            pointsVisites.add(pointId);
+            segmentsAdjacents(pointId).forEach(segment => {
+              if (segment.dataset.owner !== owner || segmentsVisites.has(segment)) return;
+              segmentsVisites.add(segment);
+              pointsAVisiter.push(segment.dataset.a === pointId ? segment.dataset.b : segment.dataset.a);
+            });
+          }
+
+          return segmentsVisites;
+        }
+
+        function afficherChaineDuSegment(segmentDepart) {
+          const chaine = recenserChaineDuSegment(segmentDepart);
+          if (!chaine.size) {
+            effacerSurbrillanceReseau();
+            segmentsEnSurbrillance.add(segmentDepart);
+            [segmentDepart.dataset.a, segmentDepart.dataset.b].forEach(pointId => {
+              const point = points.find(candidat => candidat.id === pointId);
+              if (!point?.dataset.owner) return;
+              recenserReseau(point).segments.forEach(segment => segmentsEnSurbrillance.add(segment));
+            });
+            actualiserSurbrillanceReseau();
+            texte.textContent = `${segmentDepart.id} convoitée — ${segmentsEnSurbrillance.size - 1} route${segmentsEnSurbrillance.size > 2 ? 's' : ''} de soutien reliée${segmentsEnSurbrillance.size > 2 ? 's' : ''}`;
+            return;
+          }
+
+          const retirer = [...chaine].every(segment => segmentsEnSurbrillance.has(segment));
+          chaine.forEach(segment => {
+            if (retirer) {
+              segmentsEnSurbrillance.delete(segment);
+            } else {
+              segmentsEnSurbrillance.add(segment);
+            }
+          });
+          actualiserSurbrillanceReseau();
+          const action = retirer ? 'retirée' : 'ajoutée';
+          texte.textContent = `Chaîne ${action} — ${segmentsEnSurbrillance.size} route${segmentsEnSurbrillance.size > 1 ? 's' : ''} actuellement en surbrillance`;
         }
 
         function recenserReseau(pointDepart) {
@@ -585,19 +662,27 @@
           segment.parentNode.insertBefore(zone, segment.nextSibling);
           zone.addEventListener('click', evenement => {
             evenement.stopPropagation();
-            texte.textContent = `${segment.id} — choisissez d'abord un point contrôlé puis un nœud neutre`;
+            texte.textContent = `${segment.id} — clic droit pour afficher les chaînes reliées`;
+          });
+          zone.addEventListener('contextmenu', evenement => {
+            evenement.preventDefault();
+            evenement.stopPropagation();
+            annulerDepart();
+            afficherChaineDuSegment(segment);
           });
         });
 
         points.forEach(point => {
           point.addEventListener('click', evenement => {
             evenement.stopPropagation();
+            effacerSurbrillanceReseau();
             choisirPoint(point);
           });
         });
 
         boutonAnnuler.addEventListener('click', evenement => {
           evenement.stopPropagation();
+          effacerSurbrillanceReseau();
           annulerDerniereAction();
         });
 
@@ -608,7 +693,10 @@
           }
         });
 
-        document.documentElement.addEventListener('click', () => annulerDepart());
+        document.documentElement.addEventListener('click', () => {
+          effacerSurbrillanceReseau();
+          annulerDepart();
+        });
         actualiserBoutonAnnuler();
       })();
     ]]></script>
