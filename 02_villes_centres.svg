@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1448" height="1086" viewBox="0 0 1448 1086">
+  <g id="couche-villes-centres">
+    <circle class="origin-ring" data-place-id="brita" cx="275" cy="244" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="brita" data-id="brita" data-name="BRITA" data-initial-side="blue" cx="275" cy="244" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>BRITA</title></circle>
+    <circle class="origin-ring" data-place-id="franc" cx="476" cy="220" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="franc" data-id="franc" data-name="FRANC" data-initial-side="red" cx="476" cy="220" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>FRANC</title></circle>
+    <circle class="origin-ring" data-place-id="saxon" cx="794" cy="183" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="saxon" data-id="saxon" data-name="SAXON" data-initial-side="red" cx="794" cy="183" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>SAXON</title></circle>
+    <circle class="origin-ring" data-place-id="burgo" cx="450" cy="321" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="burgo" data-id="burgo" data-name="BURGO" data-initial-side="red" cx="450" cy="321" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>BURGO</title></circle>
+    <circle class="origin-ring" data-place-id="alama" cx="740" cy="286" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="alama" data-id="alama" data-name="ALAMA" data-initial-side="red" cx="740" cy="286" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>ALAMA</title></circle>
+    <circle class="origin-ring" data-place-id="gaule" cx="365" cy="429" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="gaule" data-id="gaule" data-name="GAULE" data-initial-side="blue" cx="365" cy="429" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>GAULE</title></circle>
+    <circle class="origin-ring" data-place-id="huns" cx="787" cy="429" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="huns" data-id="huns" data-name="HUNS" data-initial-side="red" cx="787" cy="429" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>HUNS</title></circle>
+    <circle class="origin-ring" data-place-id="wgoth" cx="255" cy="501" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="wgoth" data-id="wgoth" data-name="WGOTH" data-initial-side="red" cx="255" cy="501" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>WGOTH</title></circle>
+    <circle class="origin-ring" data-place-id="sueve" cx="97" cy="562" r="16" fill="none" stroke="#b33a2e" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="sueve" data-id="sueve" data-name="SUEVE" data-initial-side="red" cx="97" cy="562" r="10" fill="#b33a2e" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>SUEVE</title></circle>
+    <circle class="origin-ring" data-place-id="hispa" cx="183" cy="653" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="hispa" data-id="hispa" data-name="HISPA" data-initial-side="blue" cx="183" cy="653" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>HISPA</title></circle>
+    <circle class="origin-ring" data-place-id="itali" cx="519" cy="494" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="itali" data-id="itali" data-name="ITALI" data-initial-side="blue" cx="519" cy="494" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>ITALI</title></circle>
+    <circle class="origin-ring" data-place-id="thrac" cx="1080" cy="475" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="thrac" data-id="thrac" data-name="THRAC" data-initial-side="blue" cx="1080" cy="475" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>THRAC</title></circle>
+    <circle class="origin-ring" data-place-id="maced" cx="733" cy="608" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="maced" data-id="maced" data-name="MACED" data-initial-side="blue" cx="733" cy="608" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>MACED</title></circle>
+    <circle class="origin-ring" data-place-id="asie" cx="1091" cy="832" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="asie" data-id="asie" data-name="ASIE" data-initial-side="blue" cx="1091" cy="832" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>ASIE</title></circle>
+    <circle class="origin-ring" data-place-id="syrie" cx="1023" cy="694" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="syrie" data-id="syrie" data-name="SYRIE" data-initial-side="blue" cx="1023" cy="694" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>SYRIE</title></circle>
+    <circle class="origin-ring" data-place-id="afric" cx="455" cy="727" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="afric" data-id="afric" data-name="AFRIC" data-initial-side="blue" cx="455" cy="727" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>AFRIC</title></circle>
+    <circle class="origin-ring" data-place-id="egypt" cx="932" cy="904" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="egypt" data-id="egypt" data-name="EGYPT" data-initial-side="blue" cx="932" cy="904" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>EGYPT</title></circle>
+  </g>
+</svg>
