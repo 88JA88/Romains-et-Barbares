@@ -371,6 +371,15 @@
           return resultat;
         }
 
+        function valeurStrategique(point) {
+          if (point.classList.contains('node')) return 0.5;
+          return point.dataset.initialSide === 'red' ? 1.5 : 1;
+        }
+
+        function calculerValeurReseau(reseau) {
+          return reseau.points.reduce((total, point) => total + valeurStrategique(point), 0);
+        }
+
         function actualiserBoutonAnnuler() {
           boutonAnnuler.classList.toggle('inactif', historique.length === 0);
         }
@@ -437,13 +446,17 @@
         }
 
         function declencherConflit(lieu, segment) {
+          const reseauAttaquant = recenserReseau(depart);
+          const reseauDefenseur = recenserReseau(lieu);
           const conflit = {
             lieu,
             segmentAttaque: segment,
             attaquantOwner: depart.dataset.owner,
             attaquantCouleur: depart.dataset.couleur,
             defenseurOwner: lieu.dataset.owner,
-            defenseurCouleur: lieu.dataset.couleur
+            defenseurCouleur: lieu.dataset.couleur,
+            valeurAttaquant: calculerValeurReseau(reseauAttaquant),
+            valeurDefenseur: calculerValeurReseau(reseauDefenseur)
           };
 
           historique.push({
@@ -467,13 +480,16 @@
           lieu.setAttribute('fill', '#ffffff');
           lieu.classList.add('est-en-conflit');
           conflitActif = conflit;
-          annulerDepart(`${lieu.id} est en conflit — cliquez sur ce lieu pour effectuer le tirage 50/50`);
+          annulerDepart(`${lieu.id} en conflit — attaque ${conflit.valeurAttaquant} point(s), défense ${conflit.valeurDefenseur} point(s) — cliquez pour résoudre`);
           actualiserBoutonAnnuler();
         }
 
         function resoudreConflit() {
           const conflit = conflitActif;
-          const attaquantGagne = Math.random() < 0.5;
+          const egalite = conflit.valeurAttaquant === conflit.valeurDefenseur;
+          const attaquantGagne = egalite
+            ? Math.random() < 0.5
+            : conflit.valeurAttaquant > conflit.valeurDefenseur;
           const vainqueurOwner = attaquantGagne ? conflit.attaquantOwner : conflit.defenseurOwner;
           const vainqueurCouleur = attaquantGagne ? conflit.attaquantCouleur : conflit.defenseurCouleur;
           const perdantOwner = attaquantGagne ? conflit.defenseurOwner : conflit.attaquantOwner;
@@ -510,7 +526,8 @@
             etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
           });
           conflitActif = null;
-          annulerDepart(`${conflit.lieu.id} remporté par le camp ${nomCamp(vainqueurOwner)} — réseaux recalculés`);
+          const departage = egalite ? 'égalité départagée à 50/50' : 'meilleur réseau';
+          annulerDepart(`${conflit.lieu.id} remporté par le camp ${nomCamp(vainqueurOwner)} (${departage}) — réseaux recalculés`);
           actualiserBoutonAnnuler();
         }
 
