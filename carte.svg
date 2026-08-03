@@ -183,6 +183,7 @@
         const epaisseurRouteControlee = '2.5';
         const historique = [];
         let depart = null;
+        let conflitActif = null;
 
         document.querySelectorAll('.place').forEach(lieu => {
           lieu.dataset.owner = lieu.dataset.initialSide || '';
@@ -301,9 +302,11 @@
             restaurerAttribut(etat.segment, 'stroke', etat.stroke);
             restaurerAttribut(etat.segment, 'stroke-width', etat.strokeWidth);
           });
-          const message = action.type === 'liaison-alliee'
-            ? `${action.segment.id} restaurée à son état précédent`
-            : `${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`;
+          if (Object.hasOwn(action, 'conflitAvant')) conflitActif = action.conflitAvant;
+          let message = `${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`;
+          if (action.type === 'liaison-alliee') message = `${action.segment.id} restaurée à son état précédent`;
+          if (action.type === 'resolution-conflit') message = `Résolution annulée — ${action.noeud.id} est de nouveau en conflit`;
+          if (action.type === 'declenchement-conflit') message = `Conflit annulé — ${action.noeud.id} restauré`;
           annulerDepart(message);
           actualiserBoutonAnnuler();
         }
@@ -328,6 +331,82 @@
           segment.setAttribute('stroke-width', epaisseurRouteControlee);
           const origine = depart.id;
           annulerDepart(`${segment.id} relie maintenant ${origine} à ${destination.id} pour le camp ${nomCamp(owner)}`);
+          actualiserBoutonAnnuler();
+        }
+
+        function declencherConflit(lieu, segment) {
+          const conflit = {
+            lieu,
+            segmentAttaque: segment,
+            attaquantOwner: depart.dataset.owner,
+            attaquantCouleur: depart.dataset.couleur,
+            defenseurOwner: lieu.dataset.owner,
+            defenseurCouleur: lieu.dataset.couleur
+          };
+
+          historique.push({
+            type: 'declenchement-conflit',
+            segment,
+            noeud: lieu,
+            segmentOwner: segment.dataset.owner,
+            segmentStroke: segment.getAttribute('stroke'),
+            segmentStrokeWidth: segment.getAttribute('stroke-width'),
+            noeudOwner: lieu.dataset.owner,
+            noeudCouleur: lieu.dataset.couleur,
+            noeudFill: lieu.getAttribute('fill'),
+            conflitAvant: null
+          });
+
+          segment.dataset.owner = conflit.attaquantOwner;
+          segment.setAttribute('stroke', conflit.attaquantCouleur);
+          segment.setAttribute('stroke-width', epaisseurRouteControlee);
+          lieu.dataset.owner = '';
+          lieu.dataset.couleur = '';
+          lieu.setAttribute('fill', '#ffffff');
+          conflitActif = conflit;
+          annulerDepart(`${lieu.id} est en conflit — cliquez sur ce lieu pour effectuer le tirage 50/50`);
+          actualiserBoutonAnnuler();
+        }
+
+        function resoudreConflit() {
+          const conflit = conflitActif;
+          const attaquantGagne = Math.random() < 0.5;
+          const vainqueurOwner = attaquantGagne ? conflit.attaquantOwner : conflit.defenseurOwner;
+          const vainqueurCouleur = attaquantGagne ? conflit.attaquantCouleur : conflit.defenseurCouleur;
+          const perdantOwner = attaquantGagne ? conflit.defenseurOwner : conflit.attaquantOwner;
+          const segmentsNeutralises = segmentsAdjacents(conflit.lieu.id)
+            .filter(segment => segment.dataset.owner === perdantOwner)
+            .map(segment => ({
+              segment,
+              owner: segment.dataset.owner,
+              stroke: segment.getAttribute('stroke'),
+              strokeWidth: segment.getAttribute('stroke-width')
+            }));
+
+          historique.push({
+            type: 'resolution-conflit',
+            segment: conflit.segmentAttaque,
+            noeud: conflit.lieu,
+            segmentOwner: conflit.segmentAttaque.dataset.owner,
+            segmentStroke: conflit.segmentAttaque.getAttribute('stroke'),
+            segmentStrokeWidth: conflit.segmentAttaque.getAttribute('stroke-width'),
+            noeudOwner: conflit.lieu.dataset.owner,
+            noeudCouleur: conflit.lieu.dataset.couleur,
+            noeudFill: conflit.lieu.getAttribute('fill'),
+            segmentsNeutralises,
+            conflitAvant: conflit
+          });
+
+          conflit.lieu.dataset.owner = vainqueurOwner;
+          conflit.lieu.dataset.couleur = vainqueurCouleur;
+          conflit.lieu.setAttribute('fill', vainqueurCouleur);
+          segmentsNeutralises.forEach(etat => {
+            etat.segment.dataset.owner = '';
+            etat.segment.setAttribute('stroke', couleurRouteNeutre);
+            etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
+          });
+          conflitActif = null;
+          annulerDepart(`${conflit.lieu.id} remporté par le camp ${nomCamp(vainqueurOwner)} — réseaux recalculés`);
           actualiserBoutonAnnuler();
         }
 
@@ -374,6 +453,15 @@
         }
 
         function choisirPoint(point) {
+          if (conflitActif) {
+            if (point === conflitActif.lieu) {
+              resoudreConflit();
+            } else {
+              texte.textContent = `${conflitActif.lieu.id} doit être résolu avant tout autre mouvement`;
+            }
+            return;
+          }
+
           if (!depart) {
             if (!point.dataset.owner) {
               texte.textContent = `${point.id} est encore neutre`;
@@ -421,7 +509,7 @@
           if (point.classList.contains('place') && point.dataset.owner) {
             const reseauDefenseur = recenserReseau(point);
             if (reseauDefenseur.capitales.length > 1) {
-              texte.textContent = `${point.id} reste reliée à une capitale alliée — conflit détecté, résolution à venir`;
+              declencherConflit(point, segment);
               return;
             }
 
@@ -430,7 +518,7 @@
           }
 
           if (point.dataset.owner) {
-            texte.textContent = `${point.id} appartient au camp adverse — conflit détecté, traitement à venir`;
+            declencherConflit(point, segment);
             return;
           }
 
