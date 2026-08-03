@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1448" height="1086" viewBox="0 0 1448 1086">
   <image id="fond-geographique" href="01_fond_physique.png" x="0" y="0" width="1448" height="1086" preserveAspectRatio="none"/>
   <style>
-    .origin-ring { display: none; }
+    .origin-ring { display: inline; }
     .place { stroke: none; }
     .segment, .node, .place { cursor: pointer; }
     .segment-hit {
@@ -178,6 +178,9 @@
         const boutonAnnuler = document.getElementById('bouton-annuler');
         const segments = [...document.querySelectorAll('.segment')];
         const points = [...document.querySelectorAll('.node, .place')];
+        const couleurRouteNeutre = '#000000';
+        const epaisseurRouteNeutre = '1';
+        const epaisseurRouteControlee = '2.5';
         const historique = [];
         let depart = null;
 
@@ -193,6 +196,8 @@
 
         segments.forEach(segment => {
           segment.dataset.owner = '';
+          segment.setAttribute('stroke', couleurRouteNeutre);
+          segment.setAttribute('stroke-width', epaisseurRouteNeutre);
         });
 
         function nomCamp(owner) {
@@ -287,10 +292,84 @@
           const action = historique.pop();
           action.segment.dataset.owner = action.segmentOwner;
           restaurerAttribut(action.segment, 'stroke', action.segmentStroke);
+          restaurerAttribut(action.segment, 'stroke-width', action.segmentStrokeWidth);
           action.noeud.dataset.owner = action.noeudOwner;
           action.noeud.dataset.couleur = action.noeudCouleur;
           restaurerAttribut(action.noeud, 'fill', action.noeudFill);
-          annulerDepart(`${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`);
+          (action.segmentsNeutralises || []).forEach(etat => {
+            etat.segment.dataset.owner = etat.owner;
+            restaurerAttribut(etat.segment, 'stroke', etat.stroke);
+            restaurerAttribut(etat.segment, 'stroke-width', etat.strokeWidth);
+          });
+          const message = action.type === 'liaison-capitales'
+            ? `${action.segment.id} restaurée à son état précédent`
+            : `${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`;
+          annulerDepart(message);
+          actualiserBoutonAnnuler();
+        }
+
+        function relierCapitalesAlliees(capitale, segment) {
+          const owner = depart.dataset.owner;
+          const couleur = depart.dataset.couleur;
+          historique.push({
+            type: 'liaison-capitales',
+            segment,
+            noeud: capitale,
+            segmentOwner: segment.dataset.owner,
+            segmentStroke: segment.getAttribute('stroke'),
+            segmentStrokeWidth: segment.getAttribute('stroke-width'),
+            noeudOwner: capitale.dataset.owner,
+            noeudCouleur: capitale.dataset.couleur,
+            noeudFill: capitale.getAttribute('fill')
+          });
+
+          segment.dataset.owner = owner;
+          segment.setAttribute('stroke', couleur);
+          segment.setAttribute('stroke-width', epaisseurRouteControlee);
+          const origine = depart.id;
+          annulerDepart(`${segment.id} relie maintenant ${origine} à ${capitale.id} pour le camp ${nomCamp(owner)}`);
+          actualiserBoutonAnnuler();
+        }
+
+        function conquerirCapitaleIsolee(capitale, segment) {
+          const owner = depart.dataset.owner;
+          const couleur = depart.dataset.couleur;
+          const ancienOwner = capitale.dataset.owner;
+          const segmentsNeutralises = segmentsAdjacents(capitale.id)
+            .filter(route => route !== segment && route.dataset.owner === ancienOwner)
+            .map(route => ({
+              segment: route,
+              owner: route.dataset.owner,
+              stroke: route.getAttribute('stroke'),
+              strokeWidth: route.getAttribute('stroke-width')
+            }));
+
+          historique.push({
+            segment,
+            noeud: capitale,
+            segmentOwner: segment.dataset.owner,
+            segmentStroke: segment.getAttribute('stroke'),
+            segmentStrokeWidth: segment.getAttribute('stroke-width'),
+            noeudOwner: capitale.dataset.owner,
+            noeudCouleur: capitale.dataset.couleur,
+            noeudFill: capitale.getAttribute('fill'),
+            segmentsNeutralises
+          });
+
+          segment.dataset.owner = owner;
+          segment.setAttribute('stroke', couleur);
+          segment.setAttribute('stroke-width', epaisseurRouteControlee);
+          capitale.dataset.owner = owner;
+          capitale.dataset.couleur = couleur;
+          capitale.setAttribute('fill', couleur);
+          segmentsNeutralises.forEach(etat => {
+            etat.segment.dataset.owner = '';
+            etat.segment.setAttribute('stroke', couleurRouteNeutre);
+            etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
+          });
+
+          const origine = depart.id;
+          annulerDepart(`${capitale.id} conquise depuis ${origine} par le camp ${nomCamp(owner)}`);
           actualiserBoutonAnnuler();
         }
 
@@ -312,16 +391,18 @@
             return;
           }
 
-          if (point.dataset.owner) {
+          if (point.dataset.owner === depart.dataset.owner) {
+            const segmentAllie = segmentEntre(depart.id, point.id);
+            const deuxCapitales = depart.classList.contains('place') && point.classList.contains('place');
+            if (deuxCapitales && segmentAllie && !segmentAllie.dataset.owner) {
+              relierCapitalesAlliees(point, segmentAllie);
+              return;
+            }
+
             annulerDepart();
             depart = point;
             depart.classList.add('est-selectionne');
             texte.textContent = `${depart.id} sélectionné — choisissez un nœud neutre voisin`;
-            return;
-          }
-
-          if (!point.classList.contains('node')) {
-            texte.textContent = 'Pour cette étape, la destination doit être un nœud neutre';
             return;
           }
 
@@ -336,6 +417,27 @@
             return;
           }
 
+          if (point.classList.contains('place') && point.dataset.owner) {
+            const reseauDefenseur = recenserReseau(point);
+            if (reseauDefenseur.capitales.length > 1) {
+              texte.textContent = `${point.id} reste reliée à une capitale alliée — conflit détecté, résolution à venir`;
+              return;
+            }
+
+            conquerirCapitaleIsolee(point, segment);
+            return;
+          }
+
+          if (point.dataset.owner) {
+            texte.textContent = `${point.id} appartient au camp adverse — conflit détecté, traitement à venir`;
+            return;
+          }
+
+          if (!point.classList.contains('node')) {
+            texte.textContent = 'Pour cette étape, la destination doit être un nœud neutre';
+            return;
+          }
+
           const owner = depart.dataset.owner;
           const couleur = depart.dataset.couleur;
           historique.push({
@@ -343,12 +445,14 @@
             noeud: point,
             segmentOwner: segment.dataset.owner,
             segmentStroke: segment.getAttribute('stroke'),
+            segmentStrokeWidth: segment.getAttribute('stroke-width'),
             noeudOwner: point.dataset.owner,
             noeudCouleur: point.dataset.couleur,
             noeudFill: point.getAttribute('fill')
           });
           segment.dataset.owner = owner;
           segment.setAttribute('stroke', couleur);
+          segment.setAttribute('stroke-width', epaisseurRouteControlee);
           point.dataset.owner = owner;
           point.dataset.couleur = couleur;
           point.setAttribute('fill', couleur);
