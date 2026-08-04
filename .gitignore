@@ -1,1 +1,31 @@
+# Fichiers que Git doit ignorer (ne jamais enregistrer ni envoyer sur GitHub).
+# Tu peux ajouter des lignes ici : un motif de fichier par ligne.
+
+# --- Secrets : mots de passe, clés d'accès. NE JAMAIS ENVOYER SUR GITHUB. ---
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# --- Dépendances installées automatiquement (elles se réinstallent toutes seules) ---
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+
+# --- Fichiers créés par macOS ---
 .DS_Store
+.AppleDouble
+._*
+
+# --- Fichiers temporaires des éditeurs ---
+*.swp
+*~
+.vscode/settings.json
+
+# --- Fichiers produits par la compilation ou la construction du projet ---
+dist/
+build/
+*.log

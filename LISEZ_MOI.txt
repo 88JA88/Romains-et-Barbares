@@ -1,0 +1,28 @@
+VIA ROMANA — paquet rétabli
+
+FICHIER À OUVRIR
+- jeu.html : contient le mode édition et le mode jeu.
+
+LES TROIS COUCHES PHYSIQUES COMMUNES
+1. 01_fond_physique.png
+2. 02_villes_centres.svg
+3. 03_routes_courbes.svg
+
+MODE ÉDITION
+- Les outils de modification des routes et des nœuds sont disponibles.
+- Les poignées de Bézier permettent de courber chaque route.
+- Les changements sont enregistrés localement dans le navigateur.
+- « Exporter les routes SVG » produit une sauvegarde durable de la couche Routes.
+- « Recharger les routes de base » revient à la couche 03 livrée dans ce paquet.
+- Clic droit ou double-clic sur une ville/centre : ouverture de sa fiche de départ.
+
+MODE JEU
+- Les trois couches physiques sont verrouillées.
+- Les couleurs des cercles et des routes constituent une couche de jeu distincte.
+- Un lieu adverse atteint devient neutre ; le segment d'arrivée garde la couleur de l'attaquant.
+- Un lieu contesté peut être rejoint par l'autre camp depuis une autre route.
+- Clic droit, double-clic ou appui long sur une ville/centre : ouverture de sa fiche de partie.
+
+ÉTAT ACTUEL
+- Le jeu fonctionne localement dans un navigateur.
+- La synchronisation entre joueurs distants n'est pas encore ajoutée.
