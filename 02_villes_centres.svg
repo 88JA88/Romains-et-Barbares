@@ -23,6 +23,8 @@
     <circle class="place" id="hispa" data-id="hispa" data-name="HISPA" data-initial-side="blue" cx="183" cy="653" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>HISPA</title></circle>
     <circle class="origin-ring" data-place-id="itali" cx="519" cy="494" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
     <circle class="place" id="itali" data-id="itali" data-name="ITALI" data-initial-side="blue" cx="519" cy="494" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>ITALI</title></circle>
+    <circle class="origin-ring" data-place-id="sard" cx="433" cy="604" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="sard" data-id="sard" data-name="SARD" data-initial-side="blue" cx="433" cy="604" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>SARD</title></circle>
     <circle class="origin-ring" data-place-id="thrac" cx="1080" cy="475" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
     <circle class="place" id="thrac" data-id="thrac" data-name="THRAC" data-initial-side="blue" cx="1080" cy="475" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>THRAC</title></circle>
     <circle class="origin-ring" data-place-id="maced" cx="733" cy="608" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
@@ -31,8 +33,10 @@
     <circle class="place" id="asie" data-id="asie" data-name="ASIE" data-initial-side="blue" cx="1091" cy="832" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>ASIE</title></circle>
     <circle class="origin-ring" data-place-id="syrie" cx="1023" cy="694" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
     <circle class="place" id="syrie" data-id="syrie" data-name="SYRIE" data-initial-side="blue" cx="1023" cy="694" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>SYRIE</title></circle>
-    <circle class="origin-ring" data-place-id="afric" cx="455" cy="727" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
-    <circle class="place" id="afric" data-id="afric" data-name="AFRIC" data-initial-side="blue" cx="455" cy="727" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>AFRIC</title></circle>
+    <circle class="origin-ring" data-place-id="carth" cx="455" cy="727" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="carth" data-id="carth" data-name="CARTH" data-initial-side="blue" cx="455" cy="727" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>CARTH</title></circle>
+    <circle class="origin-ring" data-place-id="tripo" cx="541" cy="863" r="16" fill="none" stroke="#174f8a" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
+    <circle class="place" id="tripo" data-id="tripo" data-name="TRIPO" data-initial-side="blue" cx="541" cy="863" r="10" fill="#174f8a" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>TRIPO</title></circle>
     <circle class="origin-ring" data-place-id="egypt" cx="932" cy="904" r="16" fill="none" stroke="#4c8fc7" stroke-width="1.25" vector-effect="non-scaling-stroke"/>
     <circle class="place" id="egypt" data-id="egypt" data-name="EGYPT" data-initial-side="blue" cx="932" cy="904" r="10" fill="#4c8fc7" stroke="#ffffff" stroke-width="1" vector-effect="non-scaling-stroke"><title>EGYPT</title></circle>
   </g>
