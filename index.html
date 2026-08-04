@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Romains et Barbares — carte superposée</title>
   <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+    }
+
     html,
     body {
       margin: 0;
@@ -12,9 +17,24 @@
       background: #222;
     }
 
+    .scores {
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      min-height: 54px;
+      padding: 12px 18px;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .score-bleu { color: #65b8ff; }
+    .score-rouge { color: #ff7769; }
+
     .carte {
       position: relative;
-      width: min(100vw, calc(100vh * 1448 / 1086));
+      width: min(100vw, calc((100vh - 54px) * 1448 / 1086));
       aspect-ratio: 1448 / 1086;
       margin: 0 auto;
     }
@@ -30,11 +50,110 @@
     .fond {
       object-fit: fill;
     }
+
+    .demarrage {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgb(0 0 0 / 72%);
+    }
+
+    .demarrage[hidden] { display: none; }
+
+    .panneau {
+      width: min(520px, calc(100vw - 40px));
+      box-sizing: border-box;
+      padding: 28px;
+      border: 1px solid #777;
+      border-radius: 12px;
+      background: #2b2b2b;
+      box-shadow: 0 12px 40px #000;
+    }
+
+    .panneau h1 {
+      margin: 0 0 22px;
+      font-size: 26px;
+    }
+
+    .parametre {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      align-items: center;
+      gap: 18px;
+      margin: 14px 0;
+    }
+
+    .parametre input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      font: inherit;
+    }
+
+    #commencer {
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px;
+      border: 0;
+      border-radius: 7px;
+      background: #e6e6e6;
+      color: #222;
+      font: 700 17px Arial, sans-serif;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+  <header class="scores" aria-label="Scores actuels">
+    <span class="score-bleu">Bleu : <output id="score-bleu">0</output></span>
+    <span class="score-rouge">Rouge : <output id="score-rouge">0</output></span>
+  </header>
   <main class="carte" aria-label="Carte superposant le fond, les routes et les lieux">
-    <object class="couche" data="carte.svg" type="image/svg+xml" aria-label="Carte avec routes, nœuds, capitales et centres"></object>
+    <object id="carte-jeu" class="couche" data="carte.svg" type="image/svg+xml" aria-label="Carte avec routes, nœuds, capitales et centres"></object>
   </main>
+  <section id="demarrage" class="demarrage" aria-labelledby="titre-demarrage">
+    <div class="panneau">
+      <h1 id="titre-demarrage">Valeur des éléments</h1>
+      <label class="parametre">
+        <span>Nœud</span>
+        <input id="valeur-noeud" type="number" min="0" step="0.5" value="0.5">
+      </label>
+      <label class="parametre">
+        <span>Capitale bleue</span>
+        <input id="valeur-capitale-bleue" type="number" min="0" step="0.5" value="1">
+      </label>
+      <label class="parametre">
+        <span>Capitale rouge</span>
+        <input id="valeur-capitale-rouge" type="number" min="0" step="0.5" value="1.5">
+      </label>
+      <button id="commencer" type="button">Commencer la partie</button>
+    </div>
+  </section>
+  <script>
+    const carte = document.getElementById('carte-jeu');
+    const demarrage = document.getElementById('demarrage');
+    const scoreBleu = document.getElementById('score-bleu');
+    const scoreRouge = document.getElementById('score-rouge');
+
+    window.addEventListener('message', evenement => {
+      if (evenement.data?.type !== 'scores-jeu') return;
+      scoreBleu.value = evenement.data.bleu;
+      scoreRouge.value = evenement.data.rouge;
+    });
+
+    document.getElementById('commencer').addEventListener('click', () => {
+      const valeurs = {
+        noeud: Number(document.getElementById('valeur-noeud').value),
+        capitaleBleue: Number(document.getElementById('valeur-capitale-bleue').value),
+        capitaleRouge: Number(document.getElementById('valeur-capitale-rouge').value)
+      };
+
+      carte.contentWindow.postMessage({ type: 'configurer-valeurs', valeurs }, '*');
+      demarrage.hidden = true;
+    });
+  </script>
 </body>
 </html>
