@@ -3,7 +3,7 @@
     let valeurs = {
       noeud: 0.5,
       capitaleBleue: 1,
-      capitaleRouge: 1.5
+      capitaleRouge: 1
     };
 
     function configurerValeurs(nouvellesValeurs) {

@@ -15,7 +15,7 @@
     calculerSoutiensSegment
   } = moteur;
   const formaterScore = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
-  const couleurRouteNeutre = '#000000';
+  const couleurRouteNeutre = '#765a32';
   const epaisseurRouteNeutre = '1';
   const epaisseurRouteControlee = '2.5';
   const couleurCapitaleNeutre = '#4a4a4a';
@@ -474,7 +474,8 @@
       const segmentAllie = segmentEntre(depart.id, point.id);
       const deuxCapitales = depart.classList.contains('place') && point.classList.contains('place');
       const noeudVersCapitale = depart.classList.contains('node') && point.classList.contains('place');
-      if ((deuxCapitales || noeudVersCapitale) && segmentAllie && !segmentAllie.dataset.owner) {
+      const deuxNoeuds = depart.classList.contains('node') && point.classList.contains('node');
+      if ((deuxCapitales || noeudVersCapitale || deuxNoeuds) && segmentAllie && !segmentAllie.dataset.owner) {
         relierPointsAllies(point, segmentAllie);
         return;
       }
