@@ -18,6 +18,7 @@
   const couleurRouteNeutre = '#000000';
   const epaisseurRouteNeutre = '1';
   const epaisseurRouteControlee = '2.5';
+  const couleurCapitaleNeutre = '#4a4a4a';
   const historique = [];
   const segmentsEnSurbrillance = new Set();
   let depart = null;
@@ -26,6 +27,13 @@
   document.querySelectorAll('.place').forEach(lieu => {
     lieu.dataset.owner = lieu.dataset.initialSide || '';
     lieu.dataset.couleur = lieu.getAttribute('fill') || '';
+    lieu.dataset.initialFill = lieu.getAttribute('fill') || '';
+    lieu.dataset.initialStroke = lieu.getAttribute('stroke') || '';
+    const anneau = document.querySelector(`.origin-ring[data-place-id="${lieu.id}"]`);
+    if (anneau) {
+      anneau.dataset.initialStroke = anneau.getAttribute('stroke') || '';
+      anneau.dataset.initialStrokeWidth = anneau.getAttribute('stroke-width') || '';
+    }
   });
 
   document.querySelectorAll('.node').forEach(noeud => {
@@ -38,6 +46,63 @@
     segment.setAttribute('stroke', couleurRouteNeutre);
     segment.setAttribute('stroke-width', epaisseurRouteNeutre);
   });
+
+  function tirerCapitalesNeutres() {
+    const capitales = points.filter(point => point.classList.contains('place'));
+    const melange = [...capitales];
+    for (let index = melange.length - 1; index > 0; index -= 1) {
+      const autreIndex = Math.floor(Math.random() * (index + 1));
+      [melange[index], melange[autreIndex]] = [melange[autreIndex], melange[index]];
+    }
+    return melange.slice(0, 5);
+  }
+
+  function afficherCapitaleNeutre(capitale) {
+    capitale.dataset.owner = '';
+    capitale.dataset.couleur = '';
+    capitale.dataset.neutre = 'true';
+    capitale.setAttribute('fill', '#5f8f4e');
+    capitale.setAttribute('stroke', couleurCapitaleNeutre);
+    capitale.setAttribute('stroke-width', '2');
+
+    const anneau = document.querySelector(`.origin-ring[data-place-id="${capitale.id}"]`);
+    if (!anneau) return;
+    anneau.style.display = 'none';
+  }
+
+  function afficherCapitaleDeCamp(capitale, owner, couleur) {
+    capitale.dataset.owner = owner;
+    capitale.dataset.couleur = couleur;
+    delete capitale.dataset.neutre;
+    capitale.setAttribute('fill', couleur);
+    capitale.setAttribute('stroke', '#ffffff');
+    capitale.setAttribute('stroke-width', '1');
+
+    const anneau = document.querySelector(`.origin-ring[data-place-id="${capitale.id}"]`);
+    if (!anneau) return;
+    anneau.style.display = '';
+    anneau.setAttribute('stroke', couleur);
+    anneau.setAttribute('stroke-width', '1.25');
+  }
+
+  const capitalesNeutres = tirerCapitalesNeutres();
+  capitalesNeutres.forEach(afficherCapitaleNeutre);
+  const capitalesDeCamp = points
+    .filter(point => point.classList.contains('place') && !point.dataset.neutre);
+  for (let index = capitalesDeCamp.length - 1; index > 0; index -= 1) {
+    const autreIndex = Math.floor(Math.random() * (index + 1));
+    [capitalesDeCamp[index], capitalesDeCamp[autreIndex]] = [capitalesDeCamp[autreIndex], capitalesDeCamp[index]];
+  }
+  capitalesDeCamp.forEach((capitale, index) => {
+    if (index < 7) {
+      afficherCapitaleDeCamp(capitale, 'blue', '#174f8a');
+    } else {
+      afficherCapitaleDeCamp(capitale, 'red', '#b33a2e');
+    }
+  });
+  if (capitalesNeutres.length) {
+    texte.textContent = `Capitales neutres : ${capitalesNeutres.map(capitale => capitale.dataset.name).join(', ')}`;
+  }
 
   function nomCamp(owner) {
     return owner === 'red' ? 'barbare rouge' : 'romain bleu';
@@ -135,6 +200,20 @@
     action.noeud.dataset.owner = action.noeudOwner;
     action.noeud.dataset.couleur = action.noeudCouleur;
     restaurerAttribut(action.noeud, 'fill', action.noeudFill);
+    if (Object.hasOwn(action, 'noeudStroke')) {
+      restaurerAttribut(action.noeud, 'stroke', action.noeudStroke);
+      restaurerAttribut(action.noeud, 'stroke-width', action.noeudStrokeWidth);
+      if (action.noeudNeutre === null) {
+        delete action.noeud.dataset.neutre;
+      } else {
+        action.noeud.dataset.neutre = action.noeudNeutre;
+      }
+    }
+    if (action.anneau) {
+      restaurerAttribut(action.anneau.element, 'stroke', action.anneau.stroke);
+      restaurerAttribut(action.anneau.element, 'stroke-width', action.anneau.strokeWidth);
+      action.anneau.element.style.display = action.anneau.display;
+    }
     (action.segmentsNeutralises || []).forEach(etat => {
       etat.segment.dataset.owner = etat.owner;
       restaurerAttribut(etat.segment, 'stroke', etat.stroke);
@@ -265,6 +344,7 @@
     const owner = depart.dataset.owner;
     const couleur = depart.dataset.couleur;
     const ancienOwner = capitale.dataset.owner;
+    const anneau = document.querySelector(`.origin-ring[data-place-id="${capitale.id}"]`);
     const segmentsNeutralises = segmentsAdjacents(capitale.id)
       .filter(route => route !== segment && route.dataset.owner === ancienOwner)
       .map(route => ({
@@ -283,6 +363,15 @@
       noeudOwner: capitale.dataset.owner,
       noeudCouleur: capitale.dataset.couleur,
       noeudFill: capitale.getAttribute('fill'),
+      noeudStroke: capitale.getAttribute('stroke'),
+      noeudStrokeWidth: capitale.getAttribute('stroke-width'),
+      noeudNeutre: capitale.dataset.neutre ?? null,
+      anneau: anneau ? {
+        element: anneau,
+        stroke: anneau.getAttribute('stroke'),
+        strokeWidth: anneau.getAttribute('stroke-width'),
+        display: anneau.style.display
+      } : null,
       segmentsNeutralises
     });
 
@@ -291,7 +380,15 @@
     segment.setAttribute('stroke-width', epaisseurRouteControlee);
     capitale.dataset.owner = owner;
     capitale.dataset.couleur = couleur;
+    delete capitale.dataset.neutre;
     capitale.setAttribute('fill', couleur);
+    capitale.setAttribute('stroke', '#ffffff');
+    capitale.setAttribute('stroke-width', '1');
+    if (anneau) {
+      anneau.style.display = '';
+      anneau.setAttribute('stroke', couleur);
+      anneau.setAttribute('stroke-width', '1.25');
+    }
     segmentsNeutralises.forEach(etat => {
       etat.segment.dataset.owner = '';
       etat.segment.setAttribute('stroke', couleurRouteNeutre);
@@ -300,6 +397,49 @@
 
     const origine = depart.id;
     annulerDepart(`${capitale.id} conquise depuis ${origine} par le camp ${nomCamp(owner)}`);
+    actualiserBoutonAnnuler();
+  }
+
+  function conquerirNoeudAdverse(noeud, segment) {
+    const owner = depart.dataset.owner;
+    const couleur = depart.dataset.couleur;
+    const ancienOwner = noeud.dataset.owner;
+    const segmentsNeutralises = segmentsAdjacents(noeud.id)
+      .filter(route => route !== segment && route.dataset.owner === ancienOwner)
+      .map(route => ({
+        segment: route,
+        owner: route.dataset.owner,
+        stroke: route.getAttribute('stroke'),
+        strokeWidth: route.getAttribute('stroke-width')
+      }));
+
+    historique.push({
+      type: 'prise-noeud-adverse',
+      segment,
+      noeud,
+      segmentOwner: segment.dataset.owner,
+      segmentStroke: segment.getAttribute('stroke'),
+      segmentStrokeWidth: segment.getAttribute('stroke-width'),
+      noeudOwner: noeud.dataset.owner,
+      noeudCouleur: noeud.dataset.couleur,
+      noeudFill: noeud.getAttribute('fill'),
+      segmentsNeutralises
+    });
+
+    segment.dataset.owner = owner;
+    segment.setAttribute('stroke', couleur);
+    segment.setAttribute('stroke-width', epaisseurRouteControlee);
+    noeud.dataset.owner = owner;
+    noeud.dataset.couleur = couleur;
+    noeud.setAttribute('fill', couleur);
+    segmentsNeutralises.forEach(etat => {
+      etat.segment.dataset.owner = '';
+      etat.segment.setAttribute('stroke', couleurRouteNeutre);
+      etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
+    });
+
+    const origine = depart.id;
+    annulerDepart(`${noeud.id} pris depuis ${origine} par le camp ${nomCamp(owner)} — segments adverses adjacents neutralisés`);
     actualiserBoutonAnnuler();
   }
 
@@ -368,8 +508,18 @@
       return;
     }
 
+    if (point.classList.contains('node') && point.dataset.owner) {
+      conquerirNoeudAdverse(point, segment);
+      return;
+    }
+
     if (point.dataset.owner) {
       declencherConflit(point, segment);
+      return;
+    }
+
+    if (point.classList.contains('place')) {
+      conquerirCapitaleIsolee(point, segment);
       return;
     }
 

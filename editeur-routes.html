@@ -1,5 +1,5 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Éditeur des routes — Romains et Barbares</title><style>
-html,body{margin:0;min-height:100%;background:#222;font-family:Arial,sans-serif}#toolbar{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 10px;background:#fff;border-bottom:1px solid #bbb}#status{font-weight:700;margin-right:6px}button,label.file{padding:8px 11px;border:1px solid #bbb;border-radius:6px;background:#eee;cursor:pointer}button:disabled{opacity:.45;cursor:default}input[type=file]{display:none}#map{position:relative;width:min(100vw,calc((100vh - 72px)*1448/1086));aspect-ratio:1448/1086;margin:0 auto}#background,#overlay{position:absolute;inset:0;width:100%;height:100%}#background{object-fit:fill;pointer-events:none;user-select:none}#overlay{touch-action:none}.route-visible{fill:none;stroke:#765a32;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}.route-hit{fill:none;stroke:transparent;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;cursor:pointer}.route.selected .route-visible{stroke:#ffd000;stroke-width:4}.city{stroke:#fff;stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer}.node{fill:#fff;stroke:#765a32;stroke-width:2;vector-effect:non-scaling-stroke;cursor:pointer}.adding .endpoint{stroke:#ffd000;stroke-width:3}.chosen{stroke:#00a4ff!important;stroke-width:4!important}
+html,body{margin:0;min-height:100%;background:#222;font-family:Arial,sans-serif}#project-banner{padding:7px 10px;background:#173f66;color:#fff;font-weight:700;text-align:center}#save-help{flex-basis:100%;padding-top:2px;color:#555;font-size:13px}#toolbar{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 10px;background:#fff;border-bottom:1px solid #bbb}#status{font-weight:700;margin-right:6px}button,label.file{padding:8px 11px;border:1px solid #bbb;border-radius:6px;background:#eee;cursor:pointer}button:disabled{opacity:.45;cursor:default}input[type=file]{display:none}#map{position:relative;width:min(100vw,calc((100vh - 72px)*1448/1086));aspect-ratio:1448/1086;margin:0 auto}#background,#overlay{position:absolute;inset:0;width:100%;height:100%}#background{object-fit:fill;pointer-events:none;user-select:none}#overlay{touch-action:none}.route-visible{fill:none;stroke:#765a32;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}.route-hit{fill:none;stroke:transparent;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;cursor:pointer}.route.selected .route-visible{stroke:#ffd000;stroke-width:4}.city{stroke:#fff;stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer}.node{fill:#fff;stroke:#765a32;stroke-width:2;vector-effect:non-scaling-stroke;cursor:pointer}.adding .endpoint{stroke:#ffd000;stroke-width:3}.chosen{stroke:#00a4ff!important;stroke-width:4!important}
 .place-origin-ring{fill:none;stroke-width:1.25;vector-effect:non-scaling-stroke;pointer-events:none}
 .route-handle{fill:#fff;stroke:#00a4ff;stroke-width:2;vector-effect:non-scaling-stroke;cursor:grab}
 .route-handle.active{fill:#ffd000;stroke:#765a32}
@@ -117,10 +117,13 @@ body.game-mode .adding .city,
 body.game-mode .adding .route-node:not([hidden]) {
   stroke-width: 1;
 }
+.adding .node:not(.chosen){stroke:#765a32;stroke-width:2}
+.adding .city:not(.chosen){stroke:#fff;stroke-width:1}
 #mode-toggle,#new-game{display:none}</style></head><body>
+<div id="project-banner">Projet actif : Romains-et-Barbares — éditeur officiel du dépôt GitHub</div>
 <div id="toolbar"><span id="status">Mode édition : cliquez sur une route ; clic droit ou double-clic sur une ville pour ouvrir sa fiche</span>
   <button id="mode-toggle" type="button">Passer en mode jeu</button>
-  <button id="new-game" type="button">Nouvelle partie</button><label class="file">Charger les routes SVG<input id="load-file" type="file" accept=".svg,image/svg+xml"></label><button id="add-segment">Ajouter un segment</button><button id="add-handle" disabled>Ajouter une poignée</button><button id="delete-handle" disabled>Supprimer la poignée</button><button id="straighten-route" disabled>Redresser la route</button><button id="add-node" disabled>Ajouter un nœud</button><button id="delete-segment" disabled>Supprimer le segment</button><button id="delete-node" disabled>Supprimer le nœud</button><button id="cancel" disabled>Annuler</button><button id="export">Enregistrer les routes</button><button id="reset" type="button">Recharger les routes de base</button></div>
+  <button id="new-game" type="button">Nouvelle partie</button><label class="file">Charger les routes SVG<input id="load-file" type="file" accept=".svg,image/svg+xml"></label><button id="add-segment">Ajouter un segment</button><button id="add-handle" disabled>Ajouter une poignée</button><button id="delete-handle" disabled>Supprimer la poignée</button><button id="straighten-route" disabled>Redresser la route</button><button id="add-node" disabled>Ajouter un nœud</button><button id="delete-segment" disabled>Supprimer le segment</button><button id="delete-node" disabled>Supprimer le nœud</button><button id="cancel" disabled>Annuler</button><button id="export">Télécharger les routes modifiées</button><button id="reset" type="button">Recharger les routes de base</button><div id="save-help">Le téléchargement crée <strong>routes-et-noeuds-a-valider.svg</strong>. Il ne remplace jamais automatiquement <strong>carte.svg</strong> : faites d’abord valider le fichier dans Codex.</div></div>
 
 <div id="place-panels"></div>
 
@@ -130,7 +133,7 @@ body.game-mode .adding .route-node:not([hidden]) {
 const routeHandlesLayer=document.createElementNS('http://www.w3.org/2000/svg','g');routeHandlesLayer.id='route-handles-layer';svg.appendChild(routeHandlesLayer);
 const modeToggle=document.getElementById('mode-toggle');
 const MODE_STORAGE_KEY='romainsBarbaresModeV1';
-let mapMode=localStorage.getItem(MODE_STORAGE_KEY)||'edition';
+let mapMode='edition';
 
 function deselectEverything(){
   document.querySelectorAll('.route').forEach(r=>r.classList.remove('selected'));
@@ -1343,6 +1346,6 @@ restoreState();document.getElementById('export').addEventListener('click',()=>{
   });
   out.appendChild(g);
   const blob=new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+out.outerHTML],{type:'image/svg+xml;charset=utf-8'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='routes-et-noeuds-modifies.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  a.href=URL.createObjectURL(blob);a.download='routes-et-noeuds-a-valider.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });applyMode();const resetBtn=document.getElementById('reset');if(resetBtn)resetBtn.addEventListener('click',()=>{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(GAME_NETWORK_KEY);location.reload()});updateButtons()})();
 </script></body></html>
