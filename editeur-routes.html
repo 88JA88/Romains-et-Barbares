@@ -123,7 +123,7 @@ body.game-mode .adding .route-node:not([hidden]) {
 <div id="project-banner">Projet actif : Romains-et-Barbares — éditeur officiel du dépôt GitHub</div>
 <div id="toolbar"><span id="status">Mode édition : cliquez sur une route ; clic droit ou double-clic sur une ville pour ouvrir sa fiche</span>
   <button id="mode-toggle" type="button">Passer en mode jeu</button>
-  <button id="new-game" type="button">Nouvelle partie</button><label class="file">Charger les routes SVG<input id="load-file" type="file" accept=".svg,image/svg+xml"></label><button id="add-segment">Ajouter un segment</button><button id="add-handle" disabled>Ajouter une poignée</button><button id="delete-handle" disabled>Supprimer la poignée</button><button id="straighten-route" disabled>Redresser la route</button><button id="add-node" disabled>Ajouter un nœud</button><button id="delete-segment" disabled>Supprimer le segment</button><button id="delete-node" disabled>Supprimer le nœud</button><button id="cancel" disabled>Annuler</button><button id="export">Télécharger les routes modifiées</button><button id="reset" type="button">Recharger les routes de base</button><div id="save-help">Le téléchargement crée <strong>routes-et-noeuds-a-valider.svg</strong>. Il ne remplace jamais automatiquement <strong>carte.svg</strong> : faites d’abord valider le fichier dans Codex.</div></div>
+  <button id="new-game" type="button">Nouvelle partie</button><label class="file">Charger les routes SVG<input id="load-file" type="file" accept=".svg,image/svg+xml"></label><button id="add-segment">Ajouter un segment</button><button id="add-handle" disabled>Ajouter une poignée</button><button id="delete-handle" disabled>Supprimer la poignée</button><button id="straighten-route" disabled>Redresser la route</button><button id="add-node" disabled>Ajouter un nœud</button><button id="delete-segment" disabled>Supprimer le segment</button><button id="delete-node" disabled>Supprimer le nœud</button><button id="cancel" disabled>Annuler</button><button id="export">Enregistrer dans le jeu</button><button id="test-game" type="button">Tester le jeu</button><button id="reset" type="button">Recharger la carte officielle</button><div id="save-help">Après vos modifications, cliquez sur <strong>Enregistrer dans le jeu</strong>, puis sur <strong>Tester le jeu</strong>.</div></div>
 
 <div id="place-panels"></div>
 
@@ -1327,25 +1327,95 @@ document.querySelectorAll('.city').forEach(city=>{
   });
 });
 
-restoreState();document.getElementById('export').addEventListener('click',()=>{
-  const out=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  out.setAttribute('xmlns','http://www.w3.org/2000/svg');out.setAttribute('width','1448');out.setAttribute('height','1086');out.setAttribute('viewBox','0 0 1448 1086');
-  const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.id='couche-routes';
-  document.querySelectorAll('.route').forEach(route=>{
+async function chargerCarteOfficielle(){
+  status.textContent='Chargement de la carte officielle…';
+  const reponse=await fetch('carte.svg',{cache:'no-store'});
+  if(!reponse.ok)throw new Error(`carte.svg est inaccessible (${reponse.status})`);
+  const texteCarte=await reponse.text();
+  const documentCarte=new DOMParser().parseFromString(texteCarte,'image/svg+xml');
+  if(documentCarte.querySelector('parsererror'))throw new Error('carte.svg contient une erreur XML');
+  const couche=documentCarte.querySelector('#couche-routes');
+  if(!couche)throw new Error('La couche des routes est introuvable dans carte.svg');
+
+  routesLayer.innerHTML='';
+  nodesLayer.innerHTML='';
+  routeCounter=0;
+  nodeCounter=0;
+
+  couche.querySelectorAll('circle.node').forEach(source=>{
+    const n=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    n.id=source.id;
+    n.dataset.id=source.id;
+    n.setAttribute('cx',source.getAttribute('cx'));
+    n.setAttribute('cy',source.getAttribute('cy'));
+    n.setAttribute('r','9');
+    nodesLayer.appendChild(n);
+    installNode(n);
+    nodeCounter=Math.max(nodeCounter,Number(source.id.match(/\d+$/)?.[0])||0);
+  });
+
+  couche.querySelectorAll('path.segment').forEach(source=>{
+    let handles=[];
+    try{handles=JSON.parse(source.getAttribute('data-handles')||'[]')}catch(error){handles=[]}
+    createRouteGroup({
+      id:source.id,
+      a:source.getAttribute('data-a')||'',
+      b:source.getAttribute('data-b')||'',
+      x1:Number(source.getAttribute('data-x1')),
+      y1:Number(source.getAttribute('data-y1')),
+      x2:Number(source.getAttribute('data-x2')),
+      y2:Number(source.getAttribute('data-y2')),
+      handles
+    });
+    routeCounter=Math.max(routeCounter,Number(source.id.match(/\d+$/)?.[0])||0);
+  });
+
+  localStorage.removeItem(STORAGE_KEY);
+  clearSelection();
+  status.textContent=`Carte officielle chargée : ${document.querySelectorAll('.route').length} routes et ${document.querySelectorAll('.node').length} nœuds`;
+}
+
+document.getElementById('export').addEventListener('click',async()=>{
+  const bouton=document.getElementById('export');
+  bouton.disabled=true;
+  status.textContent='Enregistrement et vérification de la carte…';
+  const routes=[...document.querySelectorAll('.route')].map(route=>{
     const start=routeEndpoint(route,'a'),end=routeEndpoint(route,'b');
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.id=route.id;path.setAttribute('data-a',route.dataset.a||'');path.setAttribute('data-b',route.dataset.b||'');
-    path.setAttribute('data-x1',start.x);path.setAttribute('data-y1',start.y);path.setAttribute('data-x2',end.x);path.setAttribute('data-y2',end.y);
-    path.setAttribute('data-handles',JSON.stringify(routeHandles(route)));
-    path.setAttribute('d',route.querySelector('.route-visible').getAttribute('d'));
-    path.setAttribute('fill','none');path.setAttribute('stroke','#765a32');path.setAttribute('stroke-width','1');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');
-    g.appendChild(path);
+    return {
+      id:route.id,
+      a:route.dataset.a||'',
+      b:route.dataset.b||'',
+      x1:start.x,
+      y1:start.y,
+      x2:end.x,
+      y2:end.y,
+      handles:routeHandles(route),
+      d:route.querySelector('.route-visible').getAttribute('d')
+    };
   });
-  document.querySelectorAll('.node').forEach(n=>{
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.id=n.dataset.id||n.id;c.setAttribute('cx',n.getAttribute('cx'));c.setAttribute('cy',n.getAttribute('cy'));c.setAttribute('r','9');c.setAttribute('fill','#fff');c.setAttribute('stroke','#765a32');c.setAttribute('stroke-width','2');g.appendChild(c);
-  });
-  out.appendChild(g);
-  const blob=new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+out.outerHTML],{type:'image/svg+xml;charset=utf-8'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='routes-et-noeuds-a-valider.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-});applyMode();const resetBtn=document.getElementById('reset');if(resetBtn)resetBtn.addEventListener('click',()=>{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(GAME_NETWORK_KEY);location.reload()});updateButtons()})();
+  const noeuds=[...document.querySelectorAll('.node')].map(noeud=>({
+    id:noeud.dataset.id||noeud.id,
+    cx:Number(noeud.getAttribute('cx')),
+    cy:Number(noeud.getAttribute('cy'))
+  }));
+  try{
+    const reponse=await fetch('/enregistrer-reseau',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({routes,noeuds})
+    });
+    const resultat=await reponse.json();
+    if(!reponse.ok)throw new Error(resultat.erreur||'Enregistrement refusé');
+    localStorage.removeItem(STORAGE_KEY);
+    status.textContent=`Carte enregistrée : ${resultat.routes} routes, ${resultat.noeuds} nœuds — sauvegarde ${resultat.sauvegarde}`;
+  }catch(error){
+    status.textContent=`Erreur : ${error.message}. Ouvrez l’éditeur avec Ouvrir-editeur.command.`;
+  }finally{
+    bouton.disabled=false;
+  }
+});
+document.getElementById('test-game').addEventListener('click',()=>{
+  window.open(`index.html?test=${Date.now()}`,'jeu-romains-et-barbares');
+});
+applyMode();const resetBtn=document.getElementById('reset');if(resetBtn)resetBtn.addEventListener('click',async()=>{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(GAME_NETWORK_KEY);try{await chargerCarteOfficielle()}catch(error){status.textContent=`Erreur : ${error.message}`}});chargerCarteOfficielle().catch(error=>{status.textContent=`Erreur : ${error.message}`});updateButtons()})();
 </script></body></html>
