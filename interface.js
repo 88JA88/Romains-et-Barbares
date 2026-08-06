@@ -28,6 +28,56 @@
   let debutTour = 0;
   let coupsParTour = 1;
   let coupsJoues = 0;
+  let configurationJoueurs = { mode: 'deux-joueurs', campHumain: 'blue' };
+  let minuterieIA = null;
+  const delaiLectureMouvementIA = 2000;
+  const delaiResolutionConflitIA = 900;
+
+  function estTourOrdinateur() {
+    return configurationJoueurs.mode === 'ordinateur'
+      && joueurActif !== configurationJoueurs.campHumain;
+  }
+
+  function terminerTourOrdinateur() {
+    minuterieIA = null;
+    window.parent.postMessage({ type: 'tour-ordinateur-termine' }, '*');
+  }
+
+  function programmerCoupOrdinateur(delai = delaiLectureMouvementIA) {
+    clearTimeout(minuterieIA);
+    minuterieIA = setTimeout(jouerCoupOrdinateur, delai);
+  }
+
+  function jouerCoupOrdinateur() {
+    minuterieIA = null;
+    if (!estTourOrdinateur()) return;
+    if (coupsJoues >= coupsParTour) {
+      terminerTourOrdinateur();
+      return;
+    }
+
+    const action = IAJeu.choisirAction({ segments, points, joueur: joueurActif, moteur });
+    if (!action) {
+      texte.textContent = `${nomArmee(joueurActif)} ne peuvent plus avancer`;
+      terminerTourOrdinateur();
+      return;
+    }
+
+    texte.textContent = `${nomArmee(joueurActif)} préparent leur mouvement…`;
+    choisirPoint(action.depart);
+    choisirPoint(action.destination);
+
+    if (conflitActif) {
+      minuterieIA = setTimeout(() => {
+        minuterieIA = null;
+        choisirPoint(action.destination);
+        programmerCoupOrdinateur();
+      }, delaiResolutionConflitIA);
+      return;
+    }
+
+    programmerCoupOrdinateur();
+  }
 
   function publierEtatTour() {
     window.parent.postMessage({
@@ -137,7 +187,15 @@
   }
 
   function nomCamp(owner) {
-    return owner === 'red' ? 'barbare rouge' : 'romain bleu';
+    return owner === 'red' ? 'des Barbares' : 'des Romains';
+  }
+
+  function nomArmee(owner) {
+    return owner === 'red' ? 'Les Barbares' : 'Les Romains';
+  }
+
+  function nomPoint(point) {
+    return point.dataset.name || 'Ce nœud';
   }
 
   function annulerDepart(message = `Choisissez un lieu du camp ${nomCamp(joueurActif)}`) {
@@ -173,7 +231,7 @@
       });
       actualiserSurbrillanceReseau();
       const soutiens = calculerSoutiensSegment(segmentDepart);
-      texte.textContent = `${segmentDepart.id} convoité — Bleu ${formaterScore.format(soutiens.bleu)} / Rouge ${formaterScore.format(soutiens.rouge)}`;
+      texte.textContent = `Route disputée — Romains ${formaterScore.format(soutiens.bleu)} / Barbares ${formaterScore.format(soutiens.rouge)}`;
       return;
     }
 
@@ -186,7 +244,7 @@
       }
     });
     actualiserSurbrillanceReseau();
-    const couleur = segmentDepart.dataset.owner === 'blue' ? 'bleue' : 'rouge';
+    const couleur = segmentDepart.dataset.owner === 'blue' ? 'des Romains' : 'des Barbares';
     if (retirer) {
       texte.textContent = `Chaîne ${couleur} masquée`;
       return;
@@ -197,7 +255,7 @@
       point.dataset.owner === segmentDepart.dataset.owner
     );
     const valeurChaine = calculerValeurReseau(recenserReseau(pointChaine));
-    texte.textContent = `Chaîne ${couleur} — Soutien : ${formaterScore.format(valeurChaine)}`;
+    texte.textContent = `Réseau ${couleur} — Soutien : ${formaterScore.format(valeurChaine)}`;
   }
 
   function actualiserBoutonAnnuler() {
@@ -209,23 +267,33 @@
     if (evenement.data?.type === 'configurer-valeurs') {
       configurerValeurs(evenement.data.valeurs);
       coupsParTour = Math.max(1, Math.floor(Number(evenement.data.coupsParTour) || 1));
+      configurationJoueurs = evenement.data.configurationJoueurs || configurationJoueurs;
       actualiserBoutonAnnuler();
       publierEtatTour();
     }
 
     if (evenement.data?.type === 'changer-joueur') {
       if (conflitActif) {
-        texte.textContent = `${conflitActif.lieu.id} doit être résolu avant de passer la main`;
+        texte.textContent = `La bataille pour ${nomPoint(conflitActif.lieu)} doit être résolue avant de passer la main`;
         return;
       }
+      const conserverDernierMouvement = estTourOrdinateur()
+        && evenement.data.joueur === configurationJoueurs.campHumain;
+      const dernierMessage = texte.textContent;
       joueurActif = evenement.data.joueur === 'red' ? 'red' : 'blue';
       debutTour = historique.length;
       coupsJoues = 0;
       effacerSurbrillanceReseau();
-      annulerDepart(`Au tour du camp ${nomCamp(joueurActif)}`);
+      annulerDepart(conserverDernierMouvement
+        ? dernierMessage
+        : `Au tour du camp ${nomCamp(joueurActif)}`);
       actualiserBoutonAnnuler();
       publierEtatTour();
       window.parent.postMessage({ type: 'joueur-actif', joueur: joueurActif }, '*');
+      if (estTourOrdinateur()) {
+        texte.textContent = `Le camp ${nomCamp(joueurActif)} réfléchit…`;
+        programmerCoupOrdinateur();
+      }
     }
   });
 
@@ -277,10 +345,9 @@
       coupsJoues = Math.max(0, coupsJoues - 1);
       publierEtatTour();
     }
-    let message = `${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`;
-    if (action.type === 'liaison-alliee') message = `${action.segment.id} restaurée à son état précédent`;
-    if (action.type === 'resolution-conflit') message = `Résolution annulée — ${action.noeud.id} est de nouveau en conflit`;
-    if (action.type === 'declenchement-conflit') message = `Conflit annulé — ${action.noeud.id} restauré`;
+    let message = 'Dernière action annulée';
+    if (action.type === 'resolution-conflit') message = `Résolution annulée — la bataille pour ${nomPoint(action.noeud)} reprend`;
+    if (action.type === 'declenchement-conflit') message = `Bataille pour ${nomPoint(action.noeud)} annulée`;
     annulerDepart(message);
     actualiserBoutonAnnuler();
   }
@@ -303,8 +370,7 @@
     segment.dataset.owner = owner;
     segment.setAttribute('stroke', couleur);
     segment.setAttribute('stroke-width', epaisseurRouteControlee);
-    const origine = depart.id;
-    annulerDepart(`${segment.id} relie maintenant ${origine} à ${destination.id} pour le camp ${nomCamp(owner)}`);
+    annulerDepart(`${nomArmee(owner)} relient deux positions`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -344,7 +410,7 @@
     lieu.setAttribute('fill', '#ffffff');
     lieu.classList.add('est-en-conflit');
     conflitActif = conflit;
-    annulerDepart(`${lieu.id} en conflit — attaque ${conflit.valeurAttaquant} point(s), défense ${conflit.valeurDefenseur} point(s) — cliquez pour résoudre`);
+    annulerDepart(`Bataille pour ${nomPoint(lieu)} — attaque ${conflit.valeurAttaquant}, défense ${conflit.valeurDefenseur} — cliquez pour combattre`);
     actualiserBoutonAnnuler();
   }
 
@@ -390,8 +456,8 @@
       etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
     });
     conflitActif = null;
-    const departage = egalite ? 'égalité départagée à 50/50' : 'meilleur réseau';
-    annulerDepart(`${conflit.lieu.id} remporté par le camp ${nomCamp(vainqueurOwner)} (${departage}) — réseaux recalculés`);
+    const departage = egalite ? ' après un tirage au sort' : '';
+    annulerDepart(`${nomPoint(conflit.lieu)} — victoire ${nomCamp(vainqueurOwner)}${departage} (attaque ${conflit.valeurAttaquant}, défense ${conflit.valeurDefenseur})`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -451,8 +517,7 @@
       etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
     });
 
-    const origine = depart.id;
-    annulerDepart(`${capitale.id} conquise depuis ${origine} par le camp ${nomCamp(owner)}`);
+    annulerDepart(`${nomArmee(owner)} conquièrent ${nomPoint(capitale)}`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -495,8 +560,7 @@
       etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
     });
 
-    const origine = depart.id;
-    annulerDepart(`${noeud.id} pris depuis ${origine} par le camp ${nomCamp(owner)} — segments adverses adjacents neutralisés`);
+    annulerDepart(`${nomArmee(owner)} s’emparent d’un nœud et coupent les routes adverses`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -506,7 +570,7 @@
       if (point === conflitActif.lieu) {
         resoudreConflit();
       } else {
-        texte.textContent = `${conflitActif.lieu.id} doit être résolu avant tout autre mouvement`;
+        texte.textContent = `La bataille pour ${nomPoint(conflitActif.lieu)} doit être résolue avant tout autre mouvement`;
       }
       return;
     }
@@ -518,7 +582,7 @@
 
     if (!depart) {
       if (!point.dataset.owner) {
-        texte.textContent = `${point.id} est encore neutre`;
+        texte.textContent = `${nomPoint(point)} est encore neutre`;
         return;
       }
 
@@ -529,7 +593,7 @@
 
       depart = point;
       depart.classList.add('est-selectionne');
-      texte.textContent = `${depart.id} sélectionné — choisissez un nœud neutre voisin`;
+      texte.textContent = `${nomPoint(depart)} sélectionné — choisissez une position voisine`;
       return;
     }
 
@@ -551,18 +615,18 @@
       annulerDepart();
       depart = point;
       depart.classList.add('est-selectionne');
-      texte.textContent = `${depart.id} sélectionné — choisissez un nœud neutre voisin`;
+      texte.textContent = `${nomPoint(depart)} sélectionné — choisissez une position voisine`;
       return;
     }
 
     const segment = segmentEntre(depart.id, point.id);
     if (!segment) {
-      texte.textContent = `${point.id} n'est pas directement voisin de ${depart.id}`;
+      texte.textContent = 'Ces deux positions ne sont pas reliées directement';
       return;
     }
 
     if (segment.dataset.owner) {
-      texte.textContent = `${segment.id} est déjà conquis`;
+      texte.textContent = 'Cette route est déjà occupée';
       return;
     }
 
@@ -615,8 +679,7 @@
     point.dataset.owner = owner;
     point.dataset.couleur = couleur;
     point.setAttribute('fill', couleur);
-    const origine = depart.id;
-    annulerDepart(`${segment.id} et ${point.id} conquis depuis ${origine} par le camp ${nomCamp(owner)}`);
+    annulerDepart(`${nomArmee(owner)} étendent leur territoire`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -629,7 +692,7 @@
     segment.parentNode.insertBefore(zone, segment.nextSibling);
     zone.addEventListener('click', evenement => {
       evenement.stopPropagation();
-      texte.textContent = `${segment.id} — clic droit pour afficher les chaînes reliées`;
+      texte.textContent = 'Route — clic droit pour afficher le réseau relié';
     });
     zone.addEventListener('contextmenu', evenement => {
       evenement.preventDefault();
@@ -643,6 +706,10 @@
     point.addEventListener('click', evenement => {
       evenement.stopPropagation();
       effacerSurbrillanceReseau();
+      if (estTourOrdinateur()) {
+        texte.textContent = `Le camp ${nomCamp(joueurActif)} réfléchit…`;
+        return;
+      }
       choisirPoint(point);
     });
   });
@@ -650,6 +717,10 @@
   boutonAnnuler.addEventListener('click', evenement => {
     evenement.stopPropagation();
     effacerSurbrillanceReseau();
+    if (estTourOrdinateur()) {
+      texte.textContent = `Le camp ${nomCamp(joueurActif)} réfléchit…`;
+      return;
+    }
     annulerDerniereAction();
   });
 

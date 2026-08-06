@@ -246,13 +246,14 @@
     </g>
     <g id="indicateur-selection" transform="translate(18 18)">
       <rect id="fond-indicateur-selection" width="650" height="40" rx="6" fill="#666666" fill-opacity="0.92"/>
-      <text id="texte-selection" x="14" y="26">Choisissez un lieu rouge ou bleu</text>
+      <text id="texte-selection" x="14" y="26">Choisissez un lieu des Romains ou des Barbares</text>
     </g>
     <g id="bouton-annuler" class="inactif" transform="translate(1280 18)">
       <rect width="150" height="40" rx="6" fill="#eeeeee" stroke="#555555"/>
       <text id="texte-annuler" x="75" y="26">Annuler</text>
     </g>
     <script href="moteur.js"></script>
+    <script href="ia.js"></script>
     <script href="interface.js"></script>
   </svg>
 </svg>

@@ -144,7 +144,8 @@
       margin: 14px 0;
     }
 
-    .parametre input {
+    .parametre input,
+    .parametre select {
       width: 100%;
       box-sizing: border-box;
       padding: 8px;
@@ -166,9 +167,9 @@
 </head>
 <body>
   <header class="scores" aria-label="Scores actuels">
-    <span class="score-bleu">Bleu : <output id="score-bleu">0</output></span>
-    <span class="score-rouge">Rouge : <output id="score-rouge">0</output></span>
-    <span class="tour-actif">Tour : <strong id="joueur-actif" data-joueur="blue">Bleu</strong></span>
+    <span class="score-bleu">Romains : <output id="score-bleu">0</output></span>
+    <span class="score-rouge">Barbares : <output id="score-rouge">0</output></span>
+    <span class="tour-actif">Tour : <strong id="joueur-actif" data-joueur="blue">Romains</strong></span>
     <span class="tour-actif">Coups restants : <output id="coups-restants">—</output></span>
     <button id="passer-main" type="button" disabled>Passer la main</button>
     <button id="nouvelle-partie" type="button">Nouvelle partie</button>
@@ -179,17 +180,24 @@
   </main>
   <section id="demarrage" class="demarrage" aria-labelledby="titre-demarrage">
     <div class="panneau">
-      <h1 id="titre-demarrage">Valeur des éléments</h1>
+      <h1 id="titre-demarrage">Réglages de la partie</h1>
+      <label class="parametre">
+        <span>Mode de jeu</span>
+        <select id="mode-jeu">
+          <option value="deux-joueurs">Deux joueurs</option>
+          <option value="ordinateur" selected>Jouer contre les Barbares</option>
+        </select>
+      </label>
       <label class="parametre">
         <span>Nœud</span>
         <input id="valeur-noeud" type="number" min="0" step="0.5" value="0.5">
       </label>
       <label class="parametre">
-        <span>Capitale bleue</span>
+        <span>Capitale romaine</span>
         <input id="valeur-capitale-bleue" type="number" min="0" step="0.5" value="1">
       </label>
       <label class="parametre">
-        <span>Capitale rouge</span>
+        <span>Capitale barbare</span>
         <input id="valeur-capitale-rouge" type="number" min="0" step="0.5" value="1">
       </label>
       <label class="parametre">
@@ -206,7 +214,7 @@
     <p>Constituer un réseau routier continu par une succession de routes adjacentes. Sur un même réseau, une capitale vaut 1 point et un nœud 0,5 point (valeurs paramétrables en début de partie).</p>
 
     <h3>Mise en place</h3>
-    <p>Les capitales sont réparties aléatoirement entre les Romains bleus, les Barbares rouges et cinq capitales neutres (en vert), susceptibles d’être conquises.</p>
+    <p>Les capitales sont réparties aléatoirement entre les Romains, les Barbares et cinq capitales neutres (en vert), susceptibles d’être conquises.</p>
 
     <h3>Jouer</h3>
     <ol>
@@ -235,6 +243,8 @@
     const joueurActif = document.getElementById('joueur-actif');
     const coupsRestants = document.getElementById('coups-restants');
     const boutonPasserMain = document.getElementById('passer-main');
+    const modeJeu = document.getElementById('mode-jeu');
+    let configurationJoueursActive = { mode: 'ordinateur', campHumain: 'blue' };
 
     document.getElementById('ouvrir-regles').addEventListener('click', () => regles.showModal());
     document.getElementById('fermer-regles').addEventListener('click', () => regles.close());
@@ -245,7 +255,7 @@
 
     function afficherJoueurActif(joueur) {
       joueurActif.dataset.joueur = joueur;
-      joueurActif.textContent = joueur === 'red' ? 'Rouge' : 'Bleu';
+      joueurActif.textContent = joueur === 'red' ? 'Barbares' : 'Romains';
     }
 
     window.addEventListener('message', evenement => {
@@ -255,10 +265,18 @@
       }
       if (evenement.data?.type === 'joueur-actif') {
         afficherJoueurActif(evenement.data.joueur);
-        boutonPasserMain.disabled = false;
+        const tourOrdinateur = configurationJoueursActive.mode === 'ordinateur'
+          && evenement.data.joueur !== configurationJoueursActive.campHumain;
+        boutonPasserMain.disabled = tourOrdinateur;
       }
       if (evenement.data?.type === 'etat-tour') {
         coupsRestants.value = evenement.data.coupsRestants;
+      }
+      if (evenement.data?.type === 'tour-ordinateur-termine') {
+        carte.contentWindow.postMessage({
+          type: 'changer-joueur',
+          joueur: configurationJoueursActive.campHumain
+        }, '*');
       }
     });
 
@@ -274,8 +292,13 @@
         capitaleRouge: Number(document.getElementById('valeur-capitale-rouge').value)
       };
       const coupsParTour = Math.max(1, Math.floor(Number(document.getElementById('coups-par-tour').value) || 1));
+      const configurationJoueurs = {
+        mode: modeJeu.value,
+        campHumain: 'blue'
+      };
+      configurationJoueursActive = configurationJoueurs;
 
-      carte.contentWindow.postMessage({ type: 'configurer-valeurs', valeurs, coupsParTour }, '*');
+      carte.contentWindow.postMessage({ type: 'configurer-valeurs', valeurs, coupsParTour, configurationJoueurs }, '*');
       carte.contentWindow.postMessage({ type: 'changer-joueur', joueur: 'blue' }, '*');
       demarrage.hidden = true;
     });
