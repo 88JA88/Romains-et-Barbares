@@ -30,6 +30,9 @@
   let coupsJoues = 0;
   let configurationJoueurs = { mode: 'deux-joueurs', campHumain: 'blue' };
   let minuterieIA = null;
+  let campagneTerminee = false;
+  let messageFinCampagne = '';
+  let detailsFinCampagne = [];
   const delaiLectureMouvementIA = 2000;
   const delaiResolutionConflitIA = 900;
 
@@ -58,8 +61,8 @@
 
     const action = IAJeu.choisirAction({ segments, points, joueur: joueurActif, moteur });
     if (!action) {
-      texte.textContent = `${nomArmee(joueurActif)} ne peuvent plus avancer`;
-      terminerTourOrdinateur();
+      texte.textContent = 'Les Barbares ne trouvent aucune offensive stratégique.';
+      window.parent.postMessage({ type: 'offensive-ordinateur-impossible' }, '*');
       return;
     }
 
@@ -182,6 +185,11 @@
       afficherCapitaleDeCamp(capitale, 'red', '#b33a2e');
     }
   });
+  points
+    .filter(point => point.classList.contains('place'))
+    .forEach(capitale => {
+      capitale.dataset.campDebut = capitale.dataset.owner || '';
+    });
   if (capitalesNeutres.length) {
     texte.textContent = `Capitales neutres : ${capitalesNeutres.map(capitale => capitale.dataset.name).join(', ')}`;
   }
@@ -198,9 +206,26 @@
     return point.dataset.name || 'Ce nœud';
   }
 
+  function afficherMessageFinCampagne() {
+    texte.textContent = '';
+    [messageFinCampagne, ...detailsFinCampagne].forEach((ligne, index) => {
+      const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      tspan.setAttribute('x', '14');
+      tspan.setAttribute('y', String(24 + index * 23));
+      tspan.textContent = ligne;
+      texte.appendChild(tspan);
+    });
+    fondIndicateur.setAttribute('width', '1050');
+    fondIndicateur.setAttribute('height', '82');
+  }
+
   function annulerDepart(message = `Choisissez un lieu du camp ${nomCamp(joueurActif)}`) {
     depart?.classList.remove('est-selectionne');
     depart = null;
+    if (campagneTerminee && message === messageFinCampagne) {
+      afficherMessageFinCampagne();
+      return;
+    }
     texte.textContent = message;
   }
 
@@ -295,6 +320,59 @@
         programmerCoupOrdinateur();
       }
     }
+
+    if (evenement.data?.type === 'evaluer-campagne') {
+      campagneTerminee = true;
+      clearTimeout(minuterieIA);
+      minuterieIA = null;
+      effacerSurbrillanceReseau();
+      const scores = calculerScores();
+      const difference = Math.abs(scores.bleu - scores.rouge);
+      const prises = `${formaterScore.format(difference)} ${difference === 1 ? 'prise' : 'prises'} de guerre`;
+      const capitalesRomaines = points.filter(point =>
+        point.classList.contains('place') && point.dataset.owner === 'blue'
+      ).length;
+      const capitalesBarbares = points.filter(point =>
+        point.classList.contains('place') && point.dataset.owner === 'red'
+      ).length;
+      const positionsRomainesPerdues = points.filter(point =>
+        point.classList.contains('place')
+        && point.dataset.campDebut === 'blue'
+        && point.dataset.owner !== 'blue'
+      );
+      const positionsAcquisesParLesRomains = points.filter(point =>
+        point.classList.contains('place')
+        && point.dataset.campDebut !== 'blue'
+        && point.dataset.owner === 'blue'
+      );
+
+      const listeCapitales = capitales => capitales.length
+        ? capitales.map(capitale => nomPoint(capitale)).join(', ')
+        : 'aucun';
+
+      let titre = 'Équilibre stratégique';
+      if (scores.bleu !== scores.rouge) {
+        const vainqueur = scores.bleu > scores.rouge ? 'blue' : 'red';
+        const vaincuSansCapitale = vainqueur === 'blue'
+          ? capitalesBarbares === 0
+          : capitalesRomaines === 0;
+        const niveau = vaincuSansCapitale ? 'totale' : 'stratégique';
+        titre = `Victoire ${niveau} ${nomCamp(vainqueur)}`;
+      }
+
+      const message = `Campagne terminée — ${titre.toLowerCase()} — ${prises}`;
+      detailsFinCampagne = [
+        `${positionsAcquisesParLesRomains.length} position${positionsAcquisesParLesRomains.length === 1 ? '' : 's'} acquise${positionsAcquisesParLesRomains.length === 1 ? '' : 's'} par les Romains : ${listeCapitales(positionsAcquisesParLesRomains)}`,
+        `${positionsRomainesPerdues.length} position${positionsRomainesPerdues.length === 1 ? '' : 's'} romaine${positionsRomainesPerdues.length === 1 ? '' : 's'} perdue${positionsRomainesPerdues.length === 1 ? '' : 's'} : ${listeCapitales(positionsRomainesPerdues)}`
+      ];
+      messageFinCampagne = message;
+      annulerDepart(message);
+      window.parent.postMessage({
+        type: 'resultat-campagne',
+        titre,
+        butin: prises
+      }, '*');
+    }
   });
 
   function restaurerAttribut(element, nom, valeur) {
@@ -375,18 +453,29 @@
     enregistrerCoup();
   }
 
-  function declencherConflit(lieu, segment) {
-    const reseauAttaquant = recenserReseau(depart);
-    const reseauDefenseur = recenserReseau(lieu);
+  function calculerForceLocale(point, owner) {
+    return segmentsAdjacents(point.id)
+      .filter(segment => segment.dataset.owner === owner)
+      .length;
+  }
+
+  function declencherConflit(lieu, segment, typeConflit) {
+    const conflitDeReseaux = typeConflit === 'reseaux';
     const conflit = {
+      type: typeConflit,
       lieu,
+      departAttaque: depart,
       segmentAttaque: segment,
       attaquantOwner: depart.dataset.owner,
       attaquantCouleur: depart.dataset.couleur,
       defenseurOwner: lieu.dataset.owner,
       defenseurCouleur: lieu.dataset.couleur,
-      valeurAttaquant: calculerValeurReseau(reseauAttaquant),
-      valeurDefenseur: calculerValeurReseau(reseauDefenseur)
+      forceAttaquant: conflitDeReseaux
+        ? calculerValeurReseau(recenserReseau(depart))
+        : calculerForceLocale(depart, depart.dataset.owner),
+      forceDefenseur: conflitDeReseaux
+        ? calculerValeurReseau(recenserReseau(lieu))
+        : calculerForceLocale(lieu, lieu.dataset.owner)
     };
 
     historique.push({
@@ -410,20 +499,23 @@
     lieu.setAttribute('fill', '#ffffff');
     lieu.classList.add('est-en-conflit');
     conflitActif = conflit;
-    annulerDepart(`Bataille pour ${nomPoint(lieu)} — attaque ${conflit.valeurAttaquant}, défense ${conflit.valeurDefenseur} — cliquez pour combattre`);
+    annulerDepart(`Bataille pour ${nomPoint(lieu)} — attaque ${conflit.forceAttaquant}, défense ${conflit.forceDefenseur} — cliquez pour combattre`);
     actualiserBoutonAnnuler();
   }
 
   function resoudreConflit() {
     const conflit = conflitActif;
-    const egalite = conflit.valeurAttaquant === conflit.valeurDefenseur;
+    const egalite = conflit.forceAttaquant === conflit.forceDefenseur;
     const attaquantGagne = egalite
       ? Math.random() < 0.5
-      : conflit.valeurAttaquant > conflit.valeurDefenseur;
+      : conflit.forceAttaquant > conflit.forceDefenseur;
     const vainqueurOwner = attaquantGagne ? conflit.attaquantOwner : conflit.defenseurOwner;
     const vainqueurCouleur = attaquantGagne ? conflit.attaquantCouleur : conflit.defenseurCouleur;
     const perdantOwner = attaquantGagne ? conflit.defenseurOwner : conflit.attaquantOwner;
-    const segmentsNeutralises = segmentsAdjacents(conflit.lieu.id)
+    const pointPerdant = conflit.type === 'coupure' && !attaquantGagne
+      ? conflit.departAttaque
+      : conflit.lieu;
+    const segmentsNeutralises = segmentsAdjacents(pointPerdant.id)
       .filter(segment => segment.dataset.owner === perdantOwner)
       .map(segment => ({
         segment,
@@ -457,7 +549,7 @@
     });
     conflitActif = null;
     const departage = egalite ? ' après un tirage au sort' : '';
-    annulerDepart(`${nomPoint(conflit.lieu)} — victoire ${nomCamp(vainqueurOwner)}${departage} (attaque ${conflit.valeurAttaquant}, défense ${conflit.valeurDefenseur})`);
+    annulerDepart(`${nomPoint(conflit.lieu)} — victoire ${nomCamp(vainqueurOwner)}${departage} (attaque ${conflit.forceAttaquant}, défense ${conflit.forceDefenseur})`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -522,21 +614,11 @@
     enregistrerCoup();
   }
 
-  function conquerirNoeudAdverse(noeud, segment) {
+  function conquerirNoeudIsole(noeud, segment) {
     const owner = depart.dataset.owner;
     const couleur = depart.dataset.couleur;
-    const ancienOwner = noeud.dataset.owner;
-    const segmentsNeutralises = segmentsAdjacents(noeud.id)
-      .filter(route => route !== segment && route.dataset.owner === ancienOwner)
-      .map(route => ({
-        segment: route,
-        owner: route.dataset.owner,
-        stroke: route.getAttribute('stroke'),
-        strokeWidth: route.getAttribute('stroke-width')
-      }));
-
     historique.push({
-      type: 'prise-noeud-adverse',
+      type: 'prise-noeud-isole',
       segment,
       noeud,
       segmentOwner: segment.dataset.owner,
@@ -544,8 +626,7 @@
       segmentStrokeWidth: segment.getAttribute('stroke-width'),
       noeudOwner: noeud.dataset.owner,
       noeudCouleur: noeud.dataset.couleur,
-      noeudFill: noeud.getAttribute('fill'),
-      segmentsNeutralises
+      noeudFill: noeud.getAttribute('fill')
     });
 
     segment.dataset.owner = owner;
@@ -554,18 +635,17 @@
     noeud.dataset.owner = owner;
     noeud.dataset.couleur = couleur;
     noeud.setAttribute('fill', couleur);
-    segmentsNeutralises.forEach(etat => {
-      etat.segment.dataset.owner = '';
-      etat.segment.setAttribute('stroke', couleurRouteNeutre);
-      etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
-    });
 
-    annulerDepart(`${nomArmee(owner)} s’emparent d’un nœud et coupent les routes adverses`);
+    annulerDepart(`${nomArmee(owner)} s’emparent d’un nœud isolé`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
 
   function choisirPoint(point) {
+    if (campagneTerminee) {
+      afficherMessageFinCampagne();
+      return;
+    }
     if (conflitActif) {
       if (point === conflitActif.lieu) {
         resoudreConflit();
@@ -630,24 +710,19 @@
       return;
     }
 
-    if (point.classList.contains('place') && point.dataset.owner) {
-      const reseauDefenseur = recenserReseau(point);
-      if (reseauDefenseur.capitales.length > 1) {
-        declencherConflit(point, segment);
+    if (point.dataset.owner) {
+      if (point.classList.contains('place')) {
+        declencherConflit(point, segment, 'reseaux');
         return;
       }
 
-      conquerirCapitaleIsolee(point, segment);
-      return;
-    }
-
-    if (point.classList.contains('node') && point.dataset.owner) {
-      conquerirNoeudAdverse(point, segment);
-      return;
-    }
-
-    if (point.dataset.owner) {
-      declencherConflit(point, segment);
+      const coupurePossible = segmentsAdjacents(point.id)
+        .some(route => route.dataset.owner === point.dataset.owner);
+      if (coupurePossible) {
+        declencherConflit(point, segment, 'coupure');
+      } else {
+        conquerirNoeudIsole(point, segment);
+      }
       return;
     }
 
@@ -692,11 +767,19 @@
     segment.parentNode.insertBefore(zone, segment.nextSibling);
     zone.addEventListener('click', evenement => {
       evenement.stopPropagation();
+      if (campagneTerminee) {
+        afficherMessageFinCampagne();
+        return;
+      }
       texte.textContent = 'Route — clic droit pour afficher le réseau relié';
     });
     zone.addEventListener('contextmenu', evenement => {
       evenement.preventDefault();
       evenement.stopPropagation();
+      if (campagneTerminee) {
+        afficherMessageFinCampagne();
+        return;
+      }
       annulerDepart();
       afficherChaineDuSegment(segment);
     });
@@ -717,6 +800,10 @@
   boutonAnnuler.addEventListener('click', evenement => {
     evenement.stopPropagation();
     effacerSurbrillanceReseau();
+    if (campagneTerminee) {
+      afficherMessageFinCampagne();
+      return;
+    }
     if (estTourOrdinateur()) {
       texte.textContent = `Le camp ${nomCamp(joueurActif)} réfléchit…`;
       return;
@@ -733,7 +820,7 @@
 
   document.documentElement.addEventListener('click', () => {
     effacerSurbrillanceReseau();
-    annulerDepart();
+    annulerDepart(campagneTerminee ? messageFinCampagne : undefined);
   });
   actualiserBoutonAnnuler();
 })();

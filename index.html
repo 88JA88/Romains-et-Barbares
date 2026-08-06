@@ -59,6 +59,7 @@
 
     #ouvrir-regles,
     #nouvelle-partie,
+    #evaluer-campagne,
     #fermer-regles {
       padding: 7px 12px;
       border: 1px solid #888;
@@ -71,7 +72,13 @@
 
     #ouvrir-regles { margin-left: 18px; }
 
-    #regles {
+    #evaluer-campagne:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+
+    #regles,
+    #decision-campagne {
       width: min(680px, calc(100vw - 40px));
       max-height: calc(100vh - 60px);
       box-sizing: border-box;
@@ -83,12 +90,32 @@
       line-height: 1.45;
     }
 
-    #regles::backdrop { background: rgb(0 0 0 / 72%); }
-    #regles h2 { margin-top: 0; }
+    #regles::backdrop,
+    #decision-campagne::backdrop { background: rgb(0 0 0 / 72%); }
+    #regles h2,
+    #decision-campagne h2 { margin-top: 0; }
     #regles h3 { margin-bottom: 5px; }
     #regles p { margin-top: 0; }
     #regles ol { padding-left: 24px; }
     #fermer-regles { display: block; margin: 24px 0 0 auto; }
+
+    .actions-campagne {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .actions-campagne button {
+      padding: 9px 14px;
+      border: 1px solid #888;
+      border-radius: 7px;
+      background: #e6e6e6;
+      color: #222;
+      font: 700 14px Arial, sans-serif;
+      cursor: pointer;
+    }
 
     .carte {
       position: relative;
@@ -172,6 +199,7 @@
     <span class="tour-actif">Tour : <strong id="joueur-actif" data-joueur="blue">Romains</strong></span>
     <span class="tour-actif">Coups restants : <output id="coups-restants">—</output></span>
     <button id="passer-main" type="button" disabled>Passer la main</button>
+    <button id="evaluer-campagne" type="button" disabled>Évaluer la campagne</button>
     <button id="nouvelle-partie" type="button">Nouvelle partie</button>
     <button id="ouvrir-regles" type="button">Règles du jeu</button>
   </header>
@@ -220,19 +248,36 @@
     <ol>
       <li>Cliquez sur un point de votre couleur.</li>
       <li>Cliquez sur un point voisin relié par une route.</li>
-      <li>La route sera acquise par le réseau. Le point pourra être conquis et prendre votre couleur si l’action ne provoque pas de conflit.</li>
-      <li>Un conflit est provoqué lorsqu’une seule route conduisant à une capitale sépare deux réseaux adverses et que l’un des joueurs veut se l’approprier. S’approprier une route qui conduit à un nœud d’un réseau adverse coupe ce réseau en rendant neutres toutes les routes adverses adjacentes à ce nœud.</li>
+      <li>Une position neutre et la route qui y conduit sont acquises sans combat.</li>
+      <li>Attaquer une capitale adverse provoque une bataille entre les deux réseaux. Attaquer un nœud adverse provoque une bataille locale si sa prise peut couper des routes ; un nœud déjà isolé est conquis directement.</li>
       <li>Chaque joueur dispose du nombre de coups choisi en début de partie. Il peut cliquer sur <strong>Passer la main</strong> avant de les avoir tous utilisés.</li>
     </ol>
 
     <h3>Conflits</h3>
-    <p>Lorsqu’un conflit est provoqué, le lieu s’anime avec un halo et la valeur totale des deux réseaux est alors comparée. Le plus puissant l’emporte et, en cas d’égalité, le vainqueur est tiré au sort. Les routes du perdant autour du point conquis redeviennent neutres. Le conflit peut être accepté en cliquant sur le lieu en question, ou refusé avec le bouton <strong>Annuler</strong>.</p>
+    <p><strong>Attaque d’une capitale :</strong> la valeur totale du réseau attaquant est comparée à celle du réseau défendant la capitale. Si l’attaquant gagne, il conquiert la capitale et les routes adverses qui l’entourent redeviennent neutres. S’il perd, la route d’attaque redevient neutre.</p>
+    <p><strong>Coupure d’un réseau :</strong> lorsqu’un nœud adverse relié à des routes est attaqué, seules les forces locales sont comparées. Chaque force correspond au nombre de routes de sa couleur directement attachées à la position de départ ou au nœud attaqué ; la route neutre utilisée pour attaquer ne compte pas. Si l’attaquant gagne, il conquiert le nœud et les routes adverses qui l’entourent redeviennent neutres. S’il perd, ses propres routes autour du point de départ redeviennent neutres. Un nœud adverse déjà isolé est conquis sans bataille.</p>
+    <p>Dans tous les conflits, la force la plus élevée l’emporte et une égalité est départagée à 50–50. Le lieu attaqué s’anime avec un halo. La bataille peut être acceptée en cliquant sur ce lieu, ou refusée avec le bouton <strong>Annuler</strong>.</p>
     <p>Un clic droit sur une route révèle le réseau auquel elle appartient et sa valeur.</p>
 
     <h3>Score</h3>
-    <p>Le score de chaque camp est affiché en permanence en haut de l’écran. Les joueurs jouent alternativement et arrêtent la partie lorsqu’un joueur estime ne plus avoir de chance de reprendre le dessus et capitule.</p>
+    <p>Le score de chaque camp est affiché en permanence en haut de l’écran. Toute position qui reste colorée compte dans le score, même si ses routes ont été coupées.</p>
+
+    <h3>Fin de campagne</h3>
+    <p>Le bouton <strong>Évaluer la campagne</strong> permet aux Romains de proposer la fin. Lorsque les Barbares ne trouvent plus d’offensive stratégique, le jeu propose automatiquement la même décision. Il est toujours possible de continuer à chercher une percée.</p>
+    <p>Si la campagne est terminée, le camp ayant le score le plus élevé obtient une <strong>victoire totale</strong> si son adversaire ne possède plus aucune capitale, ou une <strong>victoire stratégique</strong> si l’adversaire conserve au moins une capitale. Des scores identiques donnent un <strong>équilibre stratégique</strong>. Le butin, exprimé en prises de guerre, correspond à la différence entre les scores.</p>
+    <p>Le bilan compare la position finale à la répartition tirée au sort au début de la partie. Il indique les positions acquises par les Romains — y compris les anciennes positions neutres — et les positions romaines perdues.</p>
 
     <button id="fermer-regles" type="button">Fermer</button>
+  </dialog>
+  <dialog id="decision-campagne" aria-labelledby="titre-decision-campagne">
+    <section id="choix-fin-campagne">
+      <h2 id="titre-decision-campagne">Les Barbares ne trouvent aucune offensive favorable.</h2>
+      <p>Souhaitez-vous continuer à chercher une percée ou terminer la campagne et évaluer la position ?</p>
+      <div class="actions-campagne">
+        <button id="continuer-campagne" type="button">Continuer à chercher une percée</button>
+        <button id="terminer-campagne" type="button">Terminer la campagne</button>
+      </div>
+    </section>
   </dialog>
   <script>
     const carte = document.getElementById('carte-jeu');
@@ -240,11 +285,24 @@
     const scoreBleu = document.getElementById('score-bleu');
     const scoreRouge = document.getElementById('score-rouge');
     const regles = document.getElementById('regles');
+    const decisionCampagne = document.getElementById('decision-campagne');
+    const choixFinCampagne = document.getElementById('choix-fin-campagne');
     const joueurActif = document.getElementById('joueur-actif');
     const coupsRestants = document.getElementById('coups-restants');
     const boutonPasserMain = document.getElementById('passer-main');
+    const boutonEvaluerCampagne = document.getElementById('evaluer-campagne');
     const modeJeu = document.getElementById('mode-jeu');
     let configurationJoueursActive = { mode: 'ordinateur', campHumain: 'blue' };
+    let origineDecisionCampagne = 'joueur';
+
+    function ouvrirDecisionCampagne(camp, origine = 'joueur') {
+      origineDecisionCampagne = origine;
+      document.getElementById('titre-decision-campagne').textContent = camp === 'red'
+        ? 'Les Barbares ne trouvent aucune offensive stratégique.'
+        : 'Les Romains ne trouvent aucune offensive stratégique.';
+      choixFinCampagne.hidden = false;
+      decisionCampagne.showModal();
+    }
 
     document.getElementById('ouvrir-regles').addEventListener('click', () => regles.showModal());
     document.getElementById('fermer-regles').addEventListener('click', () => regles.close());
@@ -268,6 +326,7 @@
         const tourOrdinateur = configurationJoueursActive.mode === 'ordinateur'
           && evenement.data.joueur !== configurationJoueursActive.campHumain;
         boutonPasserMain.disabled = tourOrdinateur;
+        boutonEvaluerCampagne.disabled = tourOrdinateur;
       }
       if (evenement.data?.type === 'etat-tour') {
         coupsRestants.value = evenement.data.coupsRestants;
@@ -278,6 +337,34 @@
           joueur: configurationJoueursActive.campHumain
         }, '*');
       }
+      if (evenement.data?.type === 'offensive-ordinateur-impossible') {
+        boutonPasserMain.disabled = true;
+        boutonEvaluerCampagne.disabled = true;
+        ouvrirDecisionCampagne('red', 'ordinateur');
+      }
+      if (evenement.data?.type === 'resultat-campagne') {
+        decisionCampagne.close();
+        boutonPasserMain.disabled = true;
+        boutonEvaluerCampagne.disabled = true;
+      }
+    });
+
+    boutonEvaluerCampagne.addEventListener('click', () => {
+      ouvrirDecisionCampagne(joueurActif.dataset.joueur);
+    });
+
+    document.getElementById('continuer-campagne').addEventListener('click', () => {
+      decisionCampagne.close();
+      if (origineDecisionCampagne === 'ordinateur') {
+        carte.contentWindow.postMessage({
+          type: 'changer-joueur',
+          joueur: configurationJoueursActive.campHumain
+        }, '*');
+      }
+    });
+
+    document.getElementById('terminer-campagne').addEventListener('click', () => {
+      carte.contentWindow.postMessage({ type: 'evaluer-campagne' }, '*');
     });
 
     boutonPasserMain.addEventListener('click', () => {

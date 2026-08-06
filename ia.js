@@ -21,20 +21,28 @@
       return destination.classList.contains('place') ? 90 : 55;
     }
 
-    if (destination.classList.contains('node')) {
-      const routesCoupees = moteur.segmentsAdjacents(destination.id)
-        .filter(segment => segment.dataset.owner === destination.dataset.owner)
-        .length;
-      return 100 + routesCoupees * 8;
+    const forceDefense = moteur.segmentsAdjacents(destination.id)
+      .filter(segment => segment.dataset.owner === destination.dataset.owner)
+      .length;
+
+    if (destination.classList.contains('place')) {
+      const forceAttaqueReseau = moteur.calculerValeurReseau(moteur.recenserReseau(depart));
+      const forceDefenseReseau = moteur.calculerValeurReseau(moteur.recenserReseau(destination));
+      if (forceAttaqueReseau < forceDefenseReseau) return -1;
+      const risqueEgalite = forceAttaqueReseau === forceDefenseReseau ? 25 : 0;
+      return 130 + (forceAttaqueReseau - forceDefenseReseau) * 10 - risqueEgalite;
     }
 
-    const reseauDefenseur = moteur.recenserReseau(destination);
-    if (reseauDefenseur.capitales.length <= 1) return 115;
+    if (forceDefense === 0) return 105;
 
-    const valeurAttaque = moteur.calculerValeurReseau(moteur.recenserReseau(depart));
-    const valeurDefense = moteur.calculerValeurReseau(reseauDefenseur);
-    if (valeurAttaque < valeurDefense) return -1;
-    return 130 + (valeurAttaque - valeurDefense) * 10;
+    const forceAttaque = moteur.segmentsAdjacents(depart.id)
+      .filter(segment => segment.dataset.owner === depart.dataset.owner)
+      .length;
+    if (forceAttaque < forceDefense) return -1;
+
+    const routesCoupees = forceDefense;
+    const risqueEgalite = forceAttaque === forceDefense ? 25 : 0;
+    return 110 + routesCoupees * 8 + (forceAttaque - forceDefense) * 10 - risqueEgalite;
   }
 
   function choisirAction({ segments, points, joueur, moteur }) {
