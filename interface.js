@@ -1,5 +1,6 @@
 (() => {
   const texte = document.getElementById('texte-selection');
+  const fondIndicateur = document.getElementById('fond-indicateur-selection');
   const boutonAnnuler = document.getElementById('bouton-annuler');
   const segments = [...document.querySelectorAll('.segment')];
   const points = [...document.querySelectorAll('.node, .place')];
@@ -23,6 +24,37 @@
   const segmentsEnSurbrillance = new Set();
   let depart = null;
   let conflitActif = null;
+  let joueurActif = 'blue';
+  let debutTour = 0;
+  let coupsParTour = 1;
+  let coupsJoues = 0;
+
+  function publierEtatTour() {
+    window.parent.postMessage({
+      type: 'etat-tour',
+      joueur: joueurActif,
+      coupsJoues,
+      coupsRestants: Math.max(0, coupsParTour - coupsJoues)
+    }, '*');
+  }
+
+  function enregistrerCoup() {
+    coupsJoues += 1;
+    publierEtatTour();
+  }
+
+  function ajusterLargeurIndicateur() {
+    const largeurTexte = texte.getComputedTextLength();
+    const largeur = Math.min(1244, Math.max(420, Math.ceil(largeurTexte + 28)));
+    fondIndicateur.setAttribute('width', largeur);
+  }
+
+  new MutationObserver(ajusterLargeurIndicateur).observe(texte, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
+  ajusterLargeurIndicateur();
 
   document.querySelectorAll('.place').forEach(lieu => {
     lieu.dataset.owner = lieu.dataset.initialSide || '';
@@ -108,7 +140,7 @@
     return owner === 'red' ? 'barbare rouge' : 'romain bleu';
   }
 
-  function annulerDepart(message = 'Choisissez un lieu rouge ou bleu') {
+  function annulerDepart(message = `Choisissez un lieu du camp ${nomCamp(joueurActif)}`) {
     depart?.classList.remove('est-selectionne');
     depart = null;
     texte.textContent = message;
@@ -169,14 +201,32 @@
   }
 
   function actualiserBoutonAnnuler() {
-    boutonAnnuler.classList.toggle('inactif', historique.length === 0);
+    boutonAnnuler.classList.toggle('inactif', historique.length <= debutTour);
     window.parent.postMessage({ type: 'scores-jeu', ...calculerScores() }, '*');
   }
 
   window.addEventListener('message', evenement => {
-    if (evenement.data?.type !== 'configurer-valeurs') return;
-    configurerValeurs(evenement.data.valeurs);
-    actualiserBoutonAnnuler();
+    if (evenement.data?.type === 'configurer-valeurs') {
+      configurerValeurs(evenement.data.valeurs);
+      coupsParTour = Math.max(1, Math.floor(Number(evenement.data.coupsParTour) || 1));
+      actualiserBoutonAnnuler();
+      publierEtatTour();
+    }
+
+    if (evenement.data?.type === 'changer-joueur') {
+      if (conflitActif) {
+        texte.textContent = `${conflitActif.lieu.id} doit être résolu avant de passer la main`;
+        return;
+      }
+      joueurActif = evenement.data.joueur === 'red' ? 'red' : 'blue';
+      debutTour = historique.length;
+      coupsJoues = 0;
+      effacerSurbrillanceReseau();
+      annulerDepart(`Au tour du camp ${nomCamp(joueurActif)}`);
+      actualiserBoutonAnnuler();
+      publierEtatTour();
+      window.parent.postMessage({ type: 'joueur-actif', joueur: joueurActif }, '*');
+    }
   });
 
   function restaurerAttribut(element, nom, valeur) {
@@ -188,8 +238,8 @@
   }
 
   function annulerDerniereAction() {
-    if (!historique.length) {
-      texte.textContent = 'Aucune conquête à annuler';
+    if (historique.length <= debutTour) {
+      texte.textContent = 'Aucune action du joueur en cours à annuler';
       return;
     }
 
@@ -223,6 +273,10 @@
       conflitActif = action.conflitAvant;
       action.noeud.classList.toggle('est-en-conflit', conflitActif?.lieu === action.noeud);
     }
+    if (action.type !== 'declenchement-conflit') {
+      coupsJoues = Math.max(0, coupsJoues - 1);
+      publierEtatTour();
+    }
     let message = `${action.segment.id} et ${action.noeud.id} restaurés à leur état précédent`;
     if (action.type === 'liaison-alliee') message = `${action.segment.id} restaurée à son état précédent`;
     if (action.type === 'resolution-conflit') message = `Résolution annulée — ${action.noeud.id} est de nouveau en conflit`;
@@ -252,6 +306,7 @@
     const origine = depart.id;
     annulerDepart(`${segment.id} relie maintenant ${origine} à ${destination.id} pour le camp ${nomCamp(owner)}`);
     actualiserBoutonAnnuler();
+    enregistrerCoup();
   }
 
   function declencherConflit(lieu, segment) {
@@ -338,6 +393,7 @@
     const departage = egalite ? 'égalité départagée à 50/50' : 'meilleur réseau';
     annulerDepart(`${conflit.lieu.id} remporté par le camp ${nomCamp(vainqueurOwner)} (${departage}) — réseaux recalculés`);
     actualiserBoutonAnnuler();
+    enregistrerCoup();
   }
 
   function conquerirCapitaleIsolee(capitale, segment) {
@@ -398,6 +454,7 @@
     const origine = depart.id;
     annulerDepart(`${capitale.id} conquise depuis ${origine} par le camp ${nomCamp(owner)}`);
     actualiserBoutonAnnuler();
+    enregistrerCoup();
   }
 
   function conquerirNoeudAdverse(noeud, segment) {
@@ -441,6 +498,7 @@
     const origine = depart.id;
     annulerDepart(`${noeud.id} pris depuis ${origine} par le camp ${nomCamp(owner)} — segments adverses adjacents neutralisés`);
     actualiserBoutonAnnuler();
+    enregistrerCoup();
   }
 
   function choisirPoint(point) {
@@ -453,9 +511,19 @@
       return;
     }
 
+    if (!depart && coupsJoues >= coupsParTour) {
+      texte.textContent = `Tous les coups du camp ${nomCamp(joueurActif)} ont été joués — passez la main`;
+      return;
+    }
+
     if (!depart) {
       if (!point.dataset.owner) {
         texte.textContent = `${point.id} est encore neutre`;
+        return;
+      }
+
+      if (point.dataset.owner !== joueurActif) {
+        texte.textContent = `C’est au tour du camp ${nomCamp(joueurActif)}`;
         return;
       }
 
@@ -550,6 +618,7 @@
     const origine = depart.id;
     annulerDepart(`${segment.id} et ${point.id} conquis depuis ${origine} par le camp ${nomCamp(owner)}`);
     actualiserBoutonAnnuler();
+    enregistrerCoup();
   }
 
   document.querySelectorAll('.segment').forEach(segment => {

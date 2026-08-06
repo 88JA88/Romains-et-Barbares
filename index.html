@@ -32,7 +32,33 @@
     .score-bleu { color: #65b8ff; }
     .score-rouge { color: #ff7769; }
 
+    .tour-actif {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+    }
+
+    #joueur-actif[data-joueur="blue"] { color: #65b8ff; }
+    #joueur-actif[data-joueur="red"] { color: #ff7769; }
+
+    #passer-main {
+      padding: 7px 12px;
+      border: 1px solid #888;
+      border-radius: 7px;
+      background: #e6e6e6;
+      color: #222;
+      font: 700 14px Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    #passer-main:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+
     #ouvrir-regles,
+    #nouvelle-partie,
     #fermer-regles {
       padding: 7px 12px;
       border: 1px solid #888;
@@ -142,6 +168,10 @@
   <header class="scores" aria-label="Scores actuels">
     <span class="score-bleu">Bleu : <output id="score-bleu">0</output></span>
     <span class="score-rouge">Rouge : <output id="score-rouge">0</output></span>
+    <span class="tour-actif">Tour : <strong id="joueur-actif" data-joueur="blue">Bleu</strong></span>
+    <span class="tour-actif">Coups restants : <output id="coups-restants">—</output></span>
+    <button id="passer-main" type="button" disabled>Passer la main</button>
+    <button id="nouvelle-partie" type="button">Nouvelle partie</button>
     <button id="ouvrir-regles" type="button">Règles du jeu</button>
   </header>
   <main class="carte" aria-label="Carte superposant le fond, les routes et les lieux">
@@ -162,6 +192,10 @@
         <span>Capitale rouge</span>
         <input id="valeur-capitale-rouge" type="number" min="0" step="0.5" value="1">
       </label>
+      <label class="parametre">
+        <span>Coups par tour</span>
+        <input id="coups-par-tour" type="number" min="1" step="1" value="1">
+      </label>
       <button id="commencer" type="button">Commencer la partie</button>
     </div>
   </section>
@@ -180,10 +214,11 @@
       <li>Cliquez sur un point voisin relié par une route.</li>
       <li>La route sera acquise par le réseau. Le point pourra être conquis et prendre votre couleur si l’action ne provoque pas de conflit.</li>
       <li>Un conflit est provoqué lorsqu’une seule route conduisant à une capitale sépare deux réseaux adverses et que l’un des joueurs veut se l’approprier. S’approprier une route qui conduit à un nœud d’un réseau adverse coupe ce réseau en rendant neutres toutes les routes adverses adjacentes à ce nœud.</li>
+      <li>Chaque joueur dispose du nombre de coups choisi en début de partie. Il peut cliquer sur <strong>Passer la main</strong> avant de les avoir tous utilisés.</li>
     </ol>
 
     <h3>Conflits</h3>
-    <p>Lorsqu’un conflit est provoqué, la valeur totale des deux réseaux est comparée. Le plus puissant l’emporte ; en cas d’égalité, le vainqueur est tiré au sort. Les routes du perdant autour du point conquis redeviennent neutres.</p>
+    <p>Lorsqu’un conflit est provoqué, le lieu s’anime avec un halo et la valeur totale des deux réseaux est alors comparée. Le plus puissant l’emporte et, en cas d’égalité, le vainqueur est tiré au sort. Les routes du perdant autour du point conquis redeviennent neutres. Le conflit peut être accepté en cliquant sur le lieu en question, ou refusé avec le bouton <strong>Annuler</strong>.</p>
     <p>Un clic droit sur une route révèle le réseau auquel elle appartient et sa valeur.</p>
 
     <h3>Score</h3>
@@ -197,14 +232,39 @@
     const scoreBleu = document.getElementById('score-bleu');
     const scoreRouge = document.getElementById('score-rouge');
     const regles = document.getElementById('regles');
+    const joueurActif = document.getElementById('joueur-actif');
+    const coupsRestants = document.getElementById('coups-restants');
+    const boutonPasserMain = document.getElementById('passer-main');
 
     document.getElementById('ouvrir-regles').addEventListener('click', () => regles.showModal());
     document.getElementById('fermer-regles').addEventListener('click', () => regles.close());
+    document.getElementById('nouvelle-partie').addEventListener('click', () => {
+      const confirmer = window.confirm('Commencer une nouvelle partie ? La partie en cours sera perdue.');
+      if (confirmer) window.location.reload();
+    });
+
+    function afficherJoueurActif(joueur) {
+      joueurActif.dataset.joueur = joueur;
+      joueurActif.textContent = joueur === 'red' ? 'Rouge' : 'Bleu';
+    }
 
     window.addEventListener('message', evenement => {
-      if (evenement.data?.type !== 'scores-jeu') return;
-      scoreBleu.value = evenement.data.bleu;
-      scoreRouge.value = evenement.data.rouge;
+      if (evenement.data?.type === 'scores-jeu') {
+        scoreBleu.value = evenement.data.bleu;
+        scoreRouge.value = evenement.data.rouge;
+      }
+      if (evenement.data?.type === 'joueur-actif') {
+        afficherJoueurActif(evenement.data.joueur);
+        boutonPasserMain.disabled = false;
+      }
+      if (evenement.data?.type === 'etat-tour') {
+        coupsRestants.value = evenement.data.coupsRestants;
+      }
+    });
+
+    boutonPasserMain.addEventListener('click', () => {
+      const prochainJoueur = joueurActif.dataset.joueur === 'blue' ? 'red' : 'blue';
+      carte.contentWindow.postMessage({ type: 'changer-joueur', joueur: prochainJoueur }, '*');
     });
 
     document.getElementById('commencer').addEventListener('click', () => {
@@ -213,8 +273,10 @@
         capitaleBleue: Number(document.getElementById('valeur-capitale-bleue').value),
         capitaleRouge: Number(document.getElementById('valeur-capitale-rouge').value)
       };
+      const coupsParTour = Math.max(1, Math.floor(Number(document.getElementById('coups-par-tour').value) || 1));
 
-      carte.contentWindow.postMessage({ type: 'configurer-valeurs', valeurs }, '*');
+      carte.contentWindow.postMessage({ type: 'configurer-valeurs', valeurs, coupsParTour }, '*');
+      carte.contentWindow.postMessage({ type: 'changer-joueur', joueur: 'blue' }, '*');
       demarrage.hidden = true;
     });
   </script>
