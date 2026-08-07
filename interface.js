@@ -52,6 +52,14 @@
     minuterieIA = setTimeout(jouerCoupOrdinateur, delai);
   }
 
+  function poursuivreOuTerminerTourOrdinateur() {
+    if (coupsJoues >= coupsParTour) {
+      terminerTourOrdinateur();
+      return;
+    }
+    programmerCoupOrdinateur();
+  }
+
   function effacerRepereDerniereActionIA() {
     dernierSegmentIA?.classList.remove('derniere-action-ia');
     dernierSegmentIA = null;
@@ -87,13 +95,13 @@
         minuterieIA = null;
         choisirPoint(action.destination);
         signalerDerniereActionIA(action);
-        programmerCoupOrdinateur();
+        poursuivreOuTerminerTourOrdinateur();
       }, delaiResolutionConflitIA);
       return;
     }
 
     signalerDerniereActionIA(action);
-    programmerCoupOrdinateur();
+    poursuivreOuTerminerTourOrdinateur();
   }
 
   function publierEtatTour() {
@@ -316,16 +324,11 @@
         texte.textContent = `La bataille pour ${nomPoint(conflitActif.lieu)} doit être résolue avant de passer la main`;
         return;
       }
-      const conserverDernierMouvement = estTourOrdinateur()
-        && evenement.data.joueur === configurationJoueurs.campHumain;
-      const dernierMessage = texte.textContent;
       joueurActif = evenement.data.joueur === 'red' ? 'red' : 'blue';
       debutTour = historique.length;
       coupsJoues = 0;
       effacerSurbrillanceReseau();
-      annulerDepart(conserverDernierMouvement
-        ? dernierMessage
-        : `Au tour du camp ${nomCamp(joueurActif)}`);
+      annulerDepart(`Au tour du camp ${nomCamp(joueurActif)}`);
       actualiserBoutonAnnuler();
       publierEtatTour();
       window.parent.postMessage({ type: 'joueur-actif', joueur: joueurActif }, '*');

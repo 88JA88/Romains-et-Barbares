@@ -145,6 +145,7 @@
       segmentsAdjacents,
       recenserChaineDuSegment,
       recenserReseau,
+      valeurStrategique,
       calculerValeurReseau,
       calculerScores,
       calculerSoutiensSegment
