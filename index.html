@@ -179,6 +179,27 @@
       font: inherit;
     }
 
+    .choix-mode {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .choix-mode label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      line-height: 1.15;
+      cursor: pointer;
+    }
+
+    .choix-mode input {
+      width: auto;
+      margin: 0;
+    }
+
     #commencer {
       width: 100%;
       margin-top: 16px;
@@ -204,20 +225,20 @@
     <button id="ouvrir-regles" type="button">Règles du jeu</button>
   </header>
   <main class="carte" aria-label="Carte superposant le fond, les routes et les lieux">
-    <object id="carte-jeu" class="couche" data="carte.svg" type="image/svg+xml" aria-label="Carte avec routes, nœuds, capitales et centres"></object>
+    <object id="carte-jeu" class="couche" data="carte.svg" type="image/svg+xml" aria-label="Carte avec routes, carrefours et capitales"></object>
   </main>
   <section id="demarrage" class="demarrage" aria-labelledby="titre-demarrage">
     <div class="panneau">
       <h1 id="titre-demarrage">Réglages de la partie</h1>
-      <label class="parametre">
+      <div class="parametre">
         <span>Mode de jeu</span>
-        <select id="mode-jeu">
-          <option value="deux-joueurs">Deux joueurs</option>
-          <option value="ordinateur" selected>Jouer contre les Barbares</option>
-        </select>
-      </label>
+        <fieldset id="mode-jeu" class="choix-mode">
+          <label><input type="radio" name="mode-jeu" value="deux-joueurs"> <span>Deux joueurs</span></label>
+          <label><input type="radio" name="mode-jeu" value="ordinateur" checked> <span>Jouer contre<br>les Barbares</span></label>
+        </fieldset>
+      </div>
       <label class="parametre">
-        <span>Nœud</span>
+        <span>Carrefour</span>
         <input id="valeur-noeud" type="number" min="0" step="0.5" value="0.5">
       </label>
       <label class="parametre">
@@ -239,23 +260,22 @@
     <h2 id="titre-regles">Règles du jeu</h2>
 
     <h3>But du jeu</h3>
-    <p>Constituer un réseau routier continu par une succession de routes adjacentes. Sur un même réseau, une capitale vaut 1 point et un nœud 0,5 point (valeurs paramétrables en début de partie).</p>
+    <p>La carte montre le monde romain en lutte contre les Barbares. L’Empire romain, en bleu, et les camps barbares, en rouge, possèdent chacun sept capitales ; certaines capitales barbares étant déjà acquises aux Romains et inversement. Cinq capitales (en vert) sont neutres et susceptibles d’être conquises.</p>
+    <p>Le but du jeu consiste à poursuivre cette lutte en créant un réseau de positions qui uniront leurs forces pour attaquer et conquérir une position ennemie ou défendre une position acquise.</p>
+    <p>Sur un même réseau, une capitale vaut 1 point et un carrefour 0,5 point (valeurs paramétrables en début de partie).</p>
 
-    <h3>Mise en place</h3>
-    <p>Les capitales sont réparties aléatoirement entre les Romains, les Barbares et cinq capitales neutres (en vert), susceptibles d’être conquises.</p>
-
-    <h3>Jouer</h3>
+    <h3>Construire un réseau</h3>
     <ol>
       <li>Cliquez sur un point de votre couleur.</li>
       <li>Cliquez sur un point voisin relié par une route.</li>
       <li>Une position neutre et la route qui y conduit sont acquises sans combat.</li>
-      <li>Attaquer une capitale adverse provoque une bataille entre les deux réseaux. Attaquer un nœud adverse provoque une bataille locale si sa prise peut couper des routes ; un nœud déjà isolé est conquis directement.</li>
+      <li>Attaquer une capitale adverse provoque une bataille entre les deux réseaux. Attaquer un carrefour adverse provoque une bataille locale si sa prise peut couper des routes ; un carrefour déjà isolé est conquis directement.</li>
       <li>Chaque joueur dispose du nombre de coups choisi en début de partie. Il peut cliquer sur <strong>Passer la main</strong> avant de les avoir tous utilisés.</li>
     </ol>
 
     <h3>Conflits</h3>
     <p><strong>Attaque d’une capitale :</strong> la valeur totale du réseau attaquant est comparée à celle du réseau défendant la capitale. Si l’attaquant gagne, il conquiert la capitale et les routes adverses qui l’entourent redeviennent neutres. S’il perd, la route d’attaque redevient neutre.</p>
-    <p><strong>Coupure d’un réseau :</strong> lorsqu’un nœud adverse relié à des routes est attaqué, seules les forces locales sont comparées. Chaque force correspond au nombre de routes de sa couleur directement attachées à la position de départ ou au nœud attaqué ; la route neutre utilisée pour attaquer ne compte pas. Si l’attaquant gagne, il conquiert le nœud et les routes adverses qui l’entourent redeviennent neutres. S’il perd, ses propres routes autour du point de départ redeviennent neutres. Un nœud adverse déjà isolé est conquis sans bataille.</p>
+    <p><strong>Coupure d’un réseau :</strong> lorsqu’un carrefour adverse relié à des routes est attaqué, seules les forces locales sont comparées. Chaque force correspond au nombre de routes de sa couleur directement attachées à la position de départ ou au carrefour attaqué ; la route neutre utilisée pour attaquer ne compte pas. Si l’attaquant gagne, il conquiert le carrefour et les routes adverses qui l’entourent redeviennent neutres. S’il perd, ses propres routes autour du point de départ redeviennent neutres. Un carrefour adverse déjà isolé est conquis sans bataille.</p>
     <p>Dans tous les conflits, la force la plus élevée l’emporte et une égalité est départagée à 50–50. Le lieu attaqué s’anime avec un halo. La bataille peut être acceptée en cliquant sur ce lieu, ou refusée avec le bouton <strong>Annuler</strong>.</p>
     <p>Un clic droit sur une route révèle le réseau auquel elle appartient et sa valeur.</p>
 
@@ -380,7 +400,7 @@
       };
       const coupsParTour = Math.max(1, Math.floor(Number(document.getElementById('coups-par-tour').value) || 1));
       const configurationJoueurs = {
-        mode: modeJeu.value,
+        mode: modeJeu.querySelector('input:checked').value,
         campHumain: 'blue'
       };
       configurationJoueursActive = configurationJoueurs;

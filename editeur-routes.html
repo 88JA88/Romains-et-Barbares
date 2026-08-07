@@ -123,7 +123,7 @@ body.game-mode .adding .route-node:not([hidden]) {
 <div id="project-banner">Projet actif : Romains-et-Barbares — éditeur officiel du dépôt GitHub</div>
 <div id="toolbar"><span id="status">Mode édition : cliquez sur une route ; clic droit ou double-clic sur une ville pour ouvrir sa fiche</span>
   <button id="mode-toggle" type="button">Passer en mode jeu</button>
-  <button id="new-game" type="button">Nouvelle partie</button><label class="file">Charger les routes SVG<input id="load-file" type="file" accept=".svg,image/svg+xml"></label><button id="add-segment">Ajouter un segment</button><button id="add-handle" disabled>Ajouter une poignée</button><button id="delete-handle" disabled>Supprimer la poignée</button><button id="straighten-route" disabled>Redresser la route</button><button id="add-node" disabled>Ajouter un nœud</button><button id="delete-segment" disabled>Supprimer le segment</button><button id="delete-node" disabled>Supprimer le nœud</button><button id="cancel" disabled>Annuler</button><button id="export">Enregistrer dans le jeu</button><button id="test-game" type="button">Tester le jeu</button><button id="reset" type="button">Recharger la carte officielle</button><div id="save-help">Après vos modifications, cliquez sur <strong>Enregistrer dans le jeu</strong>, puis sur <strong>Tester le jeu</strong>.</div></div>
+  <button id="new-game" type="button">Nouvelle partie</button><label class="file">Charger les routes SVG<input id="load-file" type="file" accept=".svg,image/svg+xml"></label><button id="add-segment">Ajouter un segment</button><button id="add-handle" disabled>Ajouter une poignée</button><button id="delete-handle" disabled>Supprimer la poignée</button><button id="straighten-route" disabled>Redresser la route</button><button id="add-node" disabled>Ajouter un carrefour</button><button id="delete-segment" disabled>Supprimer le segment</button><button id="delete-node" disabled>Supprimer le carrefour</button><button id="cancel" disabled>Annuler</button><button id="export">Enregistrer dans le jeu</button><button id="test-game" type="button">Tester le jeu</button><button id="reset" type="button">Recharger la carte officielle</button><div id="save-help">Après vos modifications, cliquez sur <strong>Enregistrer dans le jeu</strong>, puis sur <strong>Tester le jeu</strong>.</div></div>
 
 <div id="place-panels"></div>
 
@@ -300,7 +300,12 @@ function saveState(){
     x:Number(n.getAttribute('cx')),
     y:Number(n.getAttribute('cy'))
   }));
-  localStorage.setItem(STORAGE_KEY,JSON.stringify({routes,nodes}));
+  const cities=[...document.querySelectorAll('.city')].map(city=>({
+    id:city.dataset.id||city.id,
+    x:Number(city.getAttribute('cx')),
+    y:Number(city.getAttribute('cy'))
+  }));
+  localStorage.setItem(STORAGE_KEY,JSON.stringify({routes,nodes,cities}));
   status.textContent='Travail enregistré automatiquement';
 }
 
@@ -309,6 +314,15 @@ function restoreState(){
   if(!raw)return false;
   try{
     const state=JSON.parse(raw);
+    (state.cities||[]).forEach(src=>{
+      const city=document.getElementById(src.id);
+      if(!city)return;
+      city.setAttribute('cx',src.x);
+      city.setAttribute('cy',src.y);
+      const ring=document.querySelector(`.place-origin-ring[data-place-id="${CSS.escape(src.id)}"]`);
+      ring?.setAttribute('cx',src.x);
+      ring?.setAttribute('cy',src.y);
+    });
     routesLayer.innerHTML='';
     nodesLayer.innerHTML='';
     routeCounter=0;
@@ -401,7 +415,7 @@ function selectRoute(r){
   status.textContent=r.id+' sélectionnée — ajoutez ou déplacez des poignées de courbure';
   renderRouteHandles();updateButtons();
 }
-function selectNode(n){clearSelection();selectedNode=n;status.textContent=(n.id||'nœud')+' sélectionné';updateButtons()}
+function selectNode(n){clearSelection();selectedNode=n;status.textContent=(n.id||'carrefour')+' sélectionné';updateButtons()}
 function installRoute(r){
   ensureRoutePaths(r);
   updateRoutePath(r);
@@ -439,7 +453,7 @@ document.querySelectorAll('.city').forEach(c=>c.addEventListener('click',e=>{
   if(addMode)chooseEndpoint(c);
 }));
 function svgPoint(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())}
-function beginAddMode(){if(mapMode==='jeu')return;clearSelection();addMode=true;firstPoint=null;svg.classList.add('adding');status.textContent='Cliquez sur le premier cercle (ville ou nœud)';updateButtons()}
+function beginAddMode(){if(mapMode==='jeu')return;clearSelection();addMode=true;firstPoint=null;svg.classList.add('adding');status.textContent='Cliquez sur le premier cercle (ville ou carrefour)';updateButtons()}
 function endAddMode(msg='Cliquez sur un segment'){addMode=false;firstPoint=null;svg.classList.remove('adding');document.querySelectorAll('.chosen').forEach(e=>e.classList.remove('chosen'));status.textContent=msg;updateButtons()}
 function endpointData(el){return{id:el.dataset.id||el.id,x:Number(el.getAttribute('cx')),y:Number(el.getAttribute('cy')),element:el}}
 function makeRoute(aId,bId,x1,y1,x2,y2,handles=[]){
@@ -504,10 +518,10 @@ addNodeBtn.addEventListener('click',()=>{
   selectedRoute.remove();selectedRoute=null;selectedHandleIndex=null;
   makeRoute(aId,id,start.x,start.y,x,y,firstHandles);
   makeRoute(id,bId,x,y,end.x,end.y,secondHandles);
-  renderRouteHandles();status.textContent='Nœud ajouté : la route a été divisée en deux';updateButtons();saveState();
+  renderRouteHandles();status.textContent='Carrefour ajouté : la route a été divisée en deux';updateButtons();saveState();
 });
 deleteSegmentBtn.addEventListener('click',()=>{if(mapMode==='jeu')return;if(!selectedRoute)return;const id=selectedRoute.id;selectedRoute.remove();selectedRoute=null;status.textContent=id+' supprimé';updateButtons();saveState()});
-deleteNodeBtn.addEventListener('click',()=>{if(mapMode==='jeu')return;if(!selectedNode)return;const id=selectedNode.dataset.id||selectedNode.id;document.querySelectorAll('.route').forEach(r=>{if(r.dataset.a===id||r.dataset.b===id)r.remove()});selectedNode.remove();selectedNode=null;status.textContent='Nœud et segments adjacents supprimés';updateButtons();saveState()});
+deleteNodeBtn.addEventListener('click',()=>{if(mapMode==='jeu')return;if(!selectedNode)return;const id=selectedNode.dataset.id||selectedNode.id;document.querySelectorAll('.route').forEach(r=>{if(r.dataset.a===id||r.dataset.b===id)r.remove()});selectedNode.remove();selectedNode=null;status.textContent='Carrefour et segments adjacents supprimés';updateButtons();saveState()});
 svg.addEventListener('pointermove',e=>{
   if(movingHandle){
     const p=svgPoint(e),handles=routeHandles(movingHandle.route);
@@ -522,6 +536,11 @@ svg.addEventListener('pointermove',e=>{
   if(!movingNode)return;
   const p=svgPoint(e),x=Math.round(p.x),y=Math.round(p.y),id=movingNode.dataset.id||movingNode.id;
   movingNode.setAttribute('cx',x);movingNode.setAttribute('cy',y);
+  if(movingNode.classList.contains('city')){
+    const ring=document.querySelector(`.place-origin-ring[data-place-id="${CSS.escape(id)}"]`);
+    ring?.setAttribute('cx',x);
+    ring?.setAttribute('cy',y);
+  }
   document.querySelectorAll('.route').forEach(route=>{
     if(route.dataset.a===id||route.dataset.b===id)updateRoutePath(route);
   });
@@ -1248,7 +1267,7 @@ function handleGameEndpointClick(element){
     return;
   }
 
-  // Contact avec une capitale, un centre ou un nœud adverse :
+  // Contact avec une capitale, un centre ou un carrefour adverse :
   // le lieu devient neutre en attendant la résolution du combat.
   if(owner&&owner!==side){
     if(!gameNetwork.conflicts||typeof gameNetwork.conflicts!=='object'){
@@ -1299,7 +1318,14 @@ document.querySelectorAll('.city').forEach(city=>{
   });
 
   city.addEventListener('pointerdown',event=>{
-    if(event.pointerType==='mouse')return;
+    if(event.pointerType==='mouse'){
+      if(mapMode==='jeu'||addMode)return;
+      event.stopPropagation();
+      movingNode=city;
+      city.setPointerCapture(event.pointerId);
+      status.textContent=`${city.dataset.name||city.id} déplacée — faites glisser puis relâchez`;
+      return;
+    }
     longPressStart={x:event.clientX,y:event.clientY};
     clearTimeout(longPressTimer);
     longPressTimer=setTimeout(()=>{
@@ -1354,6 +1380,16 @@ async function chargerCarteOfficielle(){
     nodeCounter=Math.max(nodeCounter,Number(source.id.match(/\d+$/)?.[0])||0);
   });
 
+  documentCarte.querySelectorAll('#couche-villes-centres circle.place').forEach(source=>{
+    const city=document.getElementById(source.id);
+    if(!city)return;
+    city.setAttribute('cx',source.getAttribute('cx'));
+    city.setAttribute('cy',source.getAttribute('cy'));
+    const ring=document.querySelector(`.place-origin-ring[data-place-id="${CSS.escape(source.id)}"]`);
+    ring?.setAttribute('cx',source.getAttribute('cx'));
+    ring?.setAttribute('cy',source.getAttribute('cy'));
+  });
+
   couche.querySelectorAll('path.segment').forEach(source=>{
     let handles=[];
     try{handles=JSON.parse(source.getAttribute('data-handles')||'[]')}catch(error){handles=[]}
@@ -1372,7 +1408,7 @@ async function chargerCarteOfficielle(){
 
   localStorage.removeItem(STORAGE_KEY);
   clearSelection();
-  status.textContent=`Carte officielle chargée : ${document.querySelectorAll('.route').length} routes et ${document.querySelectorAll('.node').length} nœuds`;
+  status.textContent=`Carte officielle chargée : ${document.querySelectorAll('.route').length} routes et ${document.querySelectorAll('.node').length} carrefours`;
 }
 
 document.getElementById('export').addEventListener('click',async()=>{
@@ -1398,16 +1434,21 @@ document.getElementById('export').addEventListener('click',async()=>{
     cx:Number(noeud.getAttribute('cx')),
     cy:Number(noeud.getAttribute('cy'))
   }));
+  const lieux=[...document.querySelectorAll('.city')].map(city=>({
+    id:city.dataset.id||city.id,
+    cx:Number(city.getAttribute('cx')),
+    cy:Number(city.getAttribute('cy'))
+  }));
   try{
     const reponse=await fetch('/enregistrer-reseau',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({routes,noeuds})
+      body:JSON.stringify({routes,noeuds,lieux})
     });
     const resultat=await reponse.json();
     if(!reponse.ok)throw new Error(resultat.erreur||'Enregistrement refusé');
     localStorage.removeItem(STORAGE_KEY);
-    status.textContent=`Carte enregistrée : ${resultat.routes} routes, ${resultat.noeuds} nœuds — sauvegarde ${resultat.sauvegarde}`;
+    status.textContent=`Carte enregistrée : ${resultat.routes} routes, ${resultat.noeuds} carrefours — sauvegarde ${resultat.sauvegarde}`;
   }catch(error){
     status.textContent=`Erreur : ${error.message}. Ouvrez l’éditeur avec Ouvrir-editeur.command.`;
   }finally{

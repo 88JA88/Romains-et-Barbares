@@ -33,6 +33,7 @@
   let campagneTerminee = false;
   let messageFinCampagne = '';
   let detailsFinCampagne = [];
+  let dernierSegmentIA = null;
   const delaiLectureMouvementIA = 2000;
   const delaiResolutionConflitIA = 900;
 
@@ -49,6 +50,17 @@
   function programmerCoupOrdinateur(delai = delaiLectureMouvementIA) {
     clearTimeout(minuterieIA);
     minuterieIA = setTimeout(jouerCoupOrdinateur, delai);
+  }
+
+  function effacerRepereDerniereActionIA() {
+    dernierSegmentIA?.classList.remove('derniere-action-ia');
+    dernierSegmentIA = null;
+  }
+
+  function signalerDerniereActionIA(action) {
+    effacerRepereDerniereActionIA();
+    dernierSegmentIA = action.segment;
+    dernierSegmentIA.classList.add('derniere-action-ia');
   }
 
   function jouerCoupOrdinateur() {
@@ -74,11 +86,13 @@
       minuterieIA = setTimeout(() => {
         minuterieIA = null;
         choisirPoint(action.destination);
+        signalerDerniereActionIA(action);
         programmerCoupOrdinateur();
       }, delaiResolutionConflitIA);
       return;
     }
 
+    signalerDerniereActionIA(action);
     programmerCoupOrdinateur();
   }
 
@@ -203,7 +217,7 @@
   }
 
   function nomPoint(point) {
-    return point.dataset.name || 'Ce nœud';
+    return point.dataset.name || 'Ce carrefour';
   }
 
   function afficherMessageFinCampagne() {
@@ -548,7 +562,7 @@
       etat.segment.setAttribute('stroke-width', epaisseurRouteNeutre);
     });
     conflitActif = null;
-    const departage = egalite ? ' après un tirage au sort' : '';
+    const departage = egalite ? ' par chance' : '';
     annulerDepart(`${nomPoint(conflit.lieu)} — victoire ${nomCamp(vainqueurOwner)}${departage} (attaque ${conflit.forceAttaquant}, défense ${conflit.forceDefenseur})`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
@@ -636,7 +650,7 @@
     noeud.dataset.couleur = couleur;
     noeud.setAttribute('fill', couleur);
 
-    annulerDepart(`${nomArmee(owner)} s’emparent d’un nœud isolé`);
+    annulerDepart(`${nomArmee(owner)} s’emparent d’un carrefour isolé`);
     actualiserBoutonAnnuler();
     enregistrerCoup();
   }
@@ -732,7 +746,7 @@
     }
 
     if (!point.classList.contains('node')) {
-      texte.textContent = 'Pour cette étape, la destination doit être un nœud neutre';
+      texte.textContent = 'Pour cette étape, la destination doit être un carrefour neutre';
       return;
     }
 
@@ -784,6 +798,10 @@
       afficherChaineDuSegment(segment);
     });
   });
+
+  document.addEventListener('click', () => {
+    if (!estTourOrdinateur()) effacerRepereDerniereActionIA();
+  }, true);
 
   points.forEach(point => {
     point.addEventListener('click', evenement => {

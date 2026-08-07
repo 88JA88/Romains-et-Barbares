@@ -39,24 +39,25 @@ def nombre(valeur: object, nom: str) -> int | float:
     return int(resultat) if resultat.is_integer() else resultat
 
 
-def valider_reseau(contenu: object, carte_actuelle: str) -> tuple[list[dict], list[dict]]:
+def valider_reseau(contenu: object, carte_actuelle: str) -> tuple[list[dict], list[dict], list[dict]]:
     if not isinstance(contenu, dict):
         raise ValueError("Le réseau reçu est invalide")
     routes = contenu.get("routes")
     noeuds = contenu.get("noeuds")
-    if not isinstance(routes, list) or not isinstance(noeuds, list):
-        raise ValueError("Les listes de routes et de nœuds sont obligatoires")
+    lieux_source = contenu.get("lieux")
+    if not isinstance(routes, list) or not isinstance(noeuds, list) or not isinstance(lieux_source, list):
+        raise ValueError("Les listes de routes, de carrefours et de lieux sont obligatoires")
     if not 1 <= len(routes) <= 500 or not 0 <= len(noeuds) <= 300:
-        raise ValueError("Le nombre de routes ou de nœuds est anormal")
+        raise ValueError("Le nombre de routes ou de carrefours est anormal")
 
     ids_noeuds: set[str] = set()
     noeuds_valides: list[dict] = []
     for source in noeuds:
         if not isinstance(source, dict):
-            raise ValueError("Un nœud est invalide")
+            raise ValueError("Un carrefour est invalide")
         identifiant = str(source.get("id", ""))
         if not IDENTIFIANT_NOEUD.fullmatch(identifiant) or identifiant in ids_noeuds:
-            raise ValueError(f"Identifiant de nœud invalide ou répété : {identifiant}")
+            raise ValueError(f"Identifiant de carrefour invalide ou répété : {identifiant}")
         ids_noeuds.add(identifiant)
         noeuds_valides.append({
             "id": identifiant,
@@ -65,6 +66,23 @@ def valider_reseau(contenu: object, carte_actuelle: str) -> tuple[list[dict], li
         })
 
     lieux = set(IDENTIFIANT_LIEU.findall(carte_actuelle))
+    lieux_valides: list[dict] = []
+    ids_lieux_recus: set[str] = set()
+    for source in lieux_source:
+        if not isinstance(source, dict):
+            raise ValueError("Un lieu est invalide")
+        identifiant = str(source.get("id", ""))
+        if identifiant not in lieux or identifiant in ids_lieux_recus:
+            raise ValueError(f"Identifiant de lieu invalide ou répété : {identifiant}")
+        ids_lieux_recus.add(identifiant)
+        lieux_valides.append({
+            "id": identifiant,
+            "cx": nombre(source.get("cx"), f"cx de {identifiant}"),
+            "cy": nombre(source.get("cy"), f"cy de {identifiant}"),
+        })
+    if ids_lieux_recus != lieux:
+        raise ValueError("La liste des lieux est incomplète")
+
     extremites_connues = lieux | ids_noeuds
     ids_routes: set[str] = set()
     routes_valides: list[dict] = []
@@ -101,7 +119,30 @@ def valider_reseau(contenu: object, carte_actuelle: str) -> tuple[list[dict], li
             "handles": poignees_valides,
             "d": trace,
         })
-    return routes_valides, noeuds_valides
+    return routes_valides, noeuds_valides, lieux_valides
+
+
+def remplacer_position(carte: str, motif: re.Pattern[str], cx: int | float, cy: int | float) -> str:
+    def modifier(correspondance: re.Match[str]) -> str:
+        balise = correspondance.group(0)
+        balise = re.sub(r'\bcx="[^"]*"', f'cx="{attribut(cx)}"', balise, count=1)
+        return re.sub(r'\bcy="[^"]*"', f'cy="{attribut(cy)}"', balise, count=1)
+
+    resultat, nombre_remplacements = motif.subn(modifier, carte, count=1)
+    if nombre_remplacements != 1:
+        raise ValueError("Un lieu ou son anneau est introuvable dans la carte")
+    return resultat
+
+
+def deplacer_lieux(carte: str, lieux: list[dict]) -> str:
+    resultat = carte
+    for lieu in lieux:
+        identifiant = re.escape(lieu["id"])
+        cercle = re.compile(rf'<circle class="place"[^>]*\bid="{identifiant}"[^>]*>')
+        anneau = re.compile(rf'<circle class="origin-ring"[^>]*\bdata-place-id="{identifiant}"[^>]*/>')
+        resultat = remplacer_position(resultat, cercle, lieu["cx"], lieu["cy"])
+        resultat = remplacer_position(resultat, anneau, lieu["cx"], lieu["cy"])
+    return resultat
 
 
 def construire_couche(routes: list[dict], noeuds: list[dict]) -> str:
@@ -129,12 +170,13 @@ def construire_couche(routes: list[dict], noeuds: list[dict]) -> str:
 
 def enregistrer_reseau(contenu: object) -> dict:
     carte_actuelle = FICHIER_CARTE.read_text(encoding="utf-8")
-    routes, noeuds = valider_reseau(contenu, carte_actuelle)
+    routes, noeuds, lieux = valider_reseau(contenu, carte_actuelle)
     debut = carte_actuelle.find(DEBUT_COUCHE)
     fin = carte_actuelle.find(FIN_COUCHE, debut)
     if debut < 0 or fin < 0:
         raise ValueError("La couche officielle des routes est introuvable")
     nouvelle_carte = carte_actuelle[:debut] + construire_couche(routes, noeuds) + "\n" + carte_actuelle[fin:]
+    nouvelle_carte = deplacer_lieux(nouvelle_carte, lieux)
 
     DOSSIER_SAUVEGARDES.mkdir(exist_ok=True)
     horodatage = datetime.now().strftime("%Y%m%d-%H%M%S")
