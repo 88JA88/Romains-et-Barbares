@@ -11,6 +11,7 @@
     segmentsAdjacents,
     recenserChaineDuSegment,
     recenserReseau,
+    calculerForceLocale,
     calculerValeurReseau,
     calculerScores,
     calculerSoutiensSegment
@@ -489,12 +490,6 @@
     enregistrerCoup();
   }
 
-  function calculerForceLocale(point, owner) {
-    return segmentsAdjacents(point.id)
-      .filter(segment => segment.dataset.owner === owner)
-      .length;
-  }
-
   function declencherConflit(lieu, segment, typeConflit) {
     const conflitDeReseaux = typeConflit === 'reseaux';
     const conflit = {
@@ -834,6 +829,20 @@
         return;
       }
       choisirPoint(point);
+    });
+    point.addEventListener('contextmenu', evenement => {
+      evenement.preventDefault();
+      evenement.stopPropagation();
+      if (!estTourOrdinateur()) effacerRepereDerniereActionIA();
+      effacerSurbrillanceReseau();
+      if (campagneTerminee) {
+        afficherMessageFinCampagne();
+        return;
+      }
+      const force = point.dataset.owner
+        ? calculerForceLocale(point, point.dataset.owner)
+        : 0;
+      texte.textContent = `${nomPoint(point)} — force locale : ${formaterScore.format(force)}`;
     });
   });
 

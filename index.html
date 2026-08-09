@@ -219,7 +219,7 @@
     <span class="score-rouge">Barbares : <output id="score-rouge">0</output></span>
     <span class="tour-actif">Tour : <strong id="joueur-actif" data-joueur="blue">Romains</strong></span>
     <span class="tour-actif">Coups restants : <output id="coups-restants">—</output></span>
-    <button id="passer-main" type="button" disabled>Passer la main</button>
+    <button id="passer-main" type="button" disabled hidden>Passer la main</button>
     <button id="evaluer-campagne" type="button" disabled>Évaluer la campagne</button>
     <button id="nouvelle-partie" type="button">Nouvelle partie</button>
     <button id="ouvrir-regles" type="button">Règles du jeu</button>
@@ -270,14 +270,14 @@
       <li>Cliquez sur un point voisin relié par une route.</li>
       <li>Une position neutre et la route qui y conduit sont acquises sans combat.</li>
       <li>Attaquer une capitale adverse provoque une bataille entre les deux réseaux. Attaquer un carrefour adverse provoque une bataille locale si sa prise peut couper des routes ; un carrefour déjà isolé est conquis directement.</li>
-      <li>Chaque joueur dispose du nombre de coups choisi en début de partie. Il peut cliquer sur <strong>Passer la main</strong> avant de les avoir tous utilisés.</li>
+      <li>Chaque joueur dispose du nombre de coups choisi en début de partie. Lorsque tous ses coups ont été joués, le bouton <strong>Passer la main</strong> apparaît. Les Barbares passent automatiquement la main.</li>
     </ol>
 
     <h3>Conflits</h3>
     <p><strong>Attaque d’une capitale :</strong> la valeur totale du réseau attaquant est comparée à celle du réseau défendant la capitale. Si l’attaquant gagne, il conquiert la capitale et les routes adverses qui l’entourent redeviennent neutres. S’il perd, la route d’attaque redevient neutre.</p>
-    <p><strong>Coupure d’un réseau :</strong> lorsqu’un carrefour adverse relié à des routes est attaqué, seules les forces locales sont comparées. Chaque force correspond au nombre de routes de sa couleur directement attachées à la position de départ ou au carrefour attaqué ; la route neutre utilisée pour attaquer ne compte pas. Si l’attaquant gagne, il conquiert le carrefour et les routes adverses qui l’entourent redeviennent neutres. S’il perd, ses propres routes autour du point de départ redeviennent neutres. Un carrefour adverse déjà isolé est conquis sans bataille.</p>
+    <p><strong>Coupure d’un réseau :</strong> lorsqu’un carrefour adverse relié à des routes est attaqué, seules les forces locales sont comparées. On examine les segments de chaque camp qui convergent vers la position attaquante ou le carrefour attaqué. Chaque segment apporte la valeur du lieu situé à son autre extrémité : capitale ou carrefour. La route neutre utilisée pour attaquer ne compte pas et le reste des réseaux n’intervient pas. Si l’attaquant gagne, il conquiert le carrefour et les routes adverses qui l’entourent redeviennent neutres. S’il perd, ses propres routes autour du point de départ redeviennent neutres. Un carrefour adverse déjà isolé est conquis sans bataille.</p>
     <p>Dans tous les conflits, la force la plus élevée l’emporte et une égalité est départagée à 50–50. Le lieu attaqué s’anime avec un halo. La bataille peut être acceptée en cliquant sur ce lieu, ou refusée avec le bouton <strong>Annuler</strong>.</p>
-    <p>Un clic droit sur une route révèle le réseau auquel elle appartient et sa valeur.</p>
+    <p>Un clic droit sur une route révèle le réseau auquel elle appartient et sa valeur. Un clic droit sur une capitale ou un carrefour affiche sa force locale.</p>
 
     <h3>Score</h3>
     <p>Le score de chaque camp est affiché en permanence en haut de l’écran. Toute position qui reste colorée compte dans le score, même si ses routes ont été coupées.</p>
@@ -350,6 +350,9 @@
       }
       if (evenement.data?.type === 'etat-tour') {
         coupsRestants.value = evenement.data.coupsRestants;
+        const tourOrdinateur = configurationJoueursActive.mode === 'ordinateur'
+          && evenement.data.joueur !== configurationJoueursActive.campHumain;
+        boutonPasserMain.hidden = tourOrdinateur || evenement.data.coupsRestants > 0;
       }
       if (evenement.data?.type === 'tour-ordinateur-termine') {
         carte.contentWindow.postMessage({
@@ -359,11 +362,13 @@
       }
       if (evenement.data?.type === 'offensive-ordinateur-impossible') {
         boutonPasserMain.disabled = true;
+        boutonPasserMain.hidden = true;
         boutonEvaluerCampagne.disabled = true;
         ouvrirDecisionCampagne('red', 'ordinateur');
       }
       if (evenement.data?.type === 'capitulation-ordinateur') {
         boutonPasserMain.disabled = true;
+        boutonPasserMain.hidden = true;
         boutonEvaluerCampagne.disabled = true;
         carte.contentWindow.postMessage({
           type: 'evaluer-campagne',
@@ -373,6 +378,7 @@
       if (evenement.data?.type === 'resultat-campagne') {
         if (decisionCampagne.open) decisionCampagne.close();
         boutonPasserMain.disabled = true;
+        boutonPasserMain.hidden = true;
         boutonEvaluerCampagne.disabled = true;
       }
     });

@@ -21,9 +21,7 @@
       return destination.classList.contains('place') ? 90 : 55;
     }
 
-    const forceDefense = moteur.segmentsAdjacents(destination.id)
-      .filter(segment => segment.dataset.owner === destination.dataset.owner)
-      .length;
+    const forceDefense = moteur.calculerForceLocale(destination, destination.dataset.owner);
 
     if (destination.classList.contains('place')) {
       const forceAttaqueReseau = moteur.calculerValeurReseau(moteur.recenserReseau(depart));
@@ -35,9 +33,7 @@
 
     if (forceDefense === 0) return 105;
 
-    const forceAttaque = moteur.segmentsAdjacents(depart.id)
-      .filter(segment => segment.dataset.owner === depart.dataset.owner)
-      .length;
+    const forceAttaque = moteur.calculerForceLocale(depart, depart.dataset.owner);
     if (forceAttaque < forceDefense) return -1;
 
     const routesCoupees = forceDefense;
@@ -96,12 +92,14 @@
         && action.destination.classList.contains('node')
       )
       .map(action => {
-        const forceAttaque = moteur.segmentsAdjacents(action.depart.id)
-          .filter(segment => segment.dataset.owner === action.depart.dataset.owner)
-          .length;
-        const forceDefense = moteur.segmentsAdjacents(action.destination.id)
-          .filter(segment => segment.dataset.owner === action.destination.dataset.owner)
-          .length;
+        const forceAttaque = moteur.calculerForceLocale(
+          action.depart,
+          action.depart.dataset.owner
+        );
+        const forceDefense = moteur.calculerForceLocale(
+          action.destination,
+          action.destination.dataset.owner
+        );
         return {
           ...action,
           forceAttaque,

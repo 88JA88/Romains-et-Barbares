@@ -103,6 +103,19 @@
         : valeurs.capitaleBleue;
     }
 
+    function calculerForceLocale(point, owner) {
+      const pointsParId = new Map(points.map(position => [position.id, position]));
+      return segmentsAdjacents(point.id)
+        .filter(segment => segment.dataset.owner === owner)
+        .reduce((force, segment) => {
+          const autreExtremiteId = segment.dataset.a === point.id
+            ? segment.dataset.b
+            : segment.dataset.a;
+          const autreExtremite = pointsParId.get(autreExtremiteId);
+          return force + (autreExtremite ? valeurStrategique(autreExtremite) : 0);
+        }, 0);
+    }
+
     function calculerValeurReseau(reseau) {
       return reseau.points.reduce((total, point) => total + valeurStrategique(point), 0);
     }
@@ -146,6 +159,7 @@
       recenserChaineDuSegment,
       recenserReseau,
       valeurStrategique,
+      calculerForceLocale,
       calculerValeurReseau,
       calculerScores,
       calculerSoutiensSegment
