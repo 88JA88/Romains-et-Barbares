@@ -283,7 +283,7 @@
     <p>Le score de chaque camp est affiché en permanence en haut de l’écran. Toute position qui reste colorée compte dans le score, même si ses routes ont été coupées.</p>
 
     <h3>Fin de campagne</h3>
-    <p>Le bouton <strong>Évaluer la campagne</strong> permet aux Romains de proposer la fin. Lorsque les Barbares ne trouvent plus d’offensive stratégique, le jeu propose automatiquement la même décision. Il est toujours possible de continuer à chercher une percée.</p>
+    <p>Le bouton <strong>Évaluer la campagne</strong> permet aux Romains de proposer la fin. Les Barbares capitulent automatiquement lorsqu’aucune expansion vers une position neutre ne reste possible, que toutes les capitales romaines directement attaquables sont défendues par un réseau supérieur et qu’aucun carrefour romain ne peut être conquis avec une supériorité locale stricte. Une égalité entre réseaux conserve une chance de victoire et empêche donc la capitulation.</p>
     <p>Si la campagne est terminée, le camp ayant le score le plus élevé obtient une <strong>victoire totale</strong> si son adversaire ne possède plus aucune capitale, ou une <strong>victoire stratégique</strong> si l’adversaire conserve au moins une capitale. Des scores identiques donnent un <strong>équilibre stratégique</strong>. Le butin, exprimé en prises de guerre, correspond à la différence entre les scores.</p>
     <p>Le bilan compare la position finale à la répartition tirée au sort au début de la partie. Il indique les positions acquises par les Romains — y compris les anciennes positions neutres — et les positions romaines perdues.</p>
 
@@ -362,8 +362,16 @@
         boutonEvaluerCampagne.disabled = true;
         ouvrirDecisionCampagne('red', 'ordinateur');
       }
+      if (evenement.data?.type === 'capitulation-ordinateur') {
+        boutonPasserMain.disabled = true;
+        boutonEvaluerCampagne.disabled = true;
+        carte.contentWindow.postMessage({
+          type: 'evaluer-campagne',
+          capitulation: evenement.data.joueur
+        }, '*');
+      }
       if (evenement.data?.type === 'resultat-campagne') {
-        decisionCampagne.close();
+        if (decisionCampagne.open) decisionCampagne.close();
         boutonPasserMain.disabled = true;
         boutonEvaluerCampagne.disabled = true;
       }

@@ -88,7 +88,7 @@
     return attaques[0] || null;
   }
 
-  function choisirCoupureCertaine(actions, moteur) {
+  function choisirAttaqueCarrefourGagnante(actions, moteur) {
     const coupures = actions
       .filter(action =>
         action.destination.dataset.owner
@@ -111,10 +111,11 @@
           )
         };
       })
-      // Pour préparer une attaque, l'IA ne compte jamais sur le hasard.
+      // Un carrefour isolé est conquis directement. Sinon, l'IA exige
+      // une supériorité locale stricte et ne compte jamais sur le hasard.
       .filter(action =>
-        action.forceDefense > 0
-        && action.forceAttaque > action.forceDefense
+        action.forceDefense === 0
+        || action.forceAttaque > action.forceDefense
       );
 
     coupures.sort((a, b) => {
@@ -157,8 +158,11 @@
       const attaqueCapitale = choisirAttaqueCapitaleGagnante(actions, moteur);
       if (attaqueCapitale) return attaqueCapitale;
 
-      const coupure = choisirCoupureCertaine(actions, moteur);
-      if (coupure) return coupure;
+      const attaqueCarrefour = choisirAttaqueCarrefourGagnante(actions, moteur);
+      if (attaqueCarrefour) return attaqueCarrefour;
+
+      const expansionNeutrePossible = actions.some(action => !action.destination.dataset.owner);
+      if (!expansionNeutrePossible) return { type: 'capitulation' };
     }
 
     const actionsJouables = actions.filter(action => action.note >= 0);

@@ -80,6 +80,11 @@
     }
 
     const action = IAJeu.choisirAction({ segments, points, joueur: joueurActif, moteur });
+    if (action?.type === 'capitulation') {
+      texte.textContent = 'Les Barbares ne trouvent plus aucune offensive favorable et capitulent.';
+      window.parent.postMessage({ type: 'capitulation-ordinateur', joueur: joueurActif }, '*');
+      return;
+    }
     if (!action) {
       texte.textContent = 'Les Barbares ne trouvent aucune offensive stratégique.';
       window.parent.postMessage({ type: 'offensive-ordinateur-impossible' }, '*');
@@ -367,8 +372,19 @@
         ? capitales.map(capitale => nomPoint(capitale)).join(', ')
         : 'aucun';
 
+      const campCapitule = evenement.data.capitulation === 'red'
+        || evenement.data.capitulation === 'blue'
+        ? evenement.data.capitulation
+        : null;
       let titre = 'Équilibre stratégique';
-      if (scores.bleu !== scores.rouge) {
+      if (campCapitule) {
+        const vainqueur = campCapitule === 'red' ? 'blue' : 'red';
+        const vaincuSansCapitale = campCapitule === 'red'
+          ? capitalesBarbares === 0
+          : capitalesRomaines === 0;
+        const niveau = vaincuSansCapitale ? 'totale' : 'stratégique';
+        titre = `Victoire ${niveau} ${nomCamp(vainqueur)}`;
+      } else if (scores.bleu !== scores.rouge) {
         const vainqueur = scores.bleu > scores.rouge ? 'blue' : 'red';
         const vaincuSansCapitale = vainqueur === 'blue'
           ? capitalesBarbares === 0
@@ -377,7 +393,10 @@
         titre = `Victoire ${niveau} ${nomCamp(vainqueur)}`;
       }
 
-      const message = `Campagne terminée — ${titre.toLowerCase()} — ${prises}`;
+      const capitulation = campCapitule
+        ? ` — capitulation ${nomCamp(campCapitule)}`
+        : '';
+      const message = `Campagne terminée${capitulation} — ${titre.toLowerCase()} — ${prises}`;
       detailsFinCampagne = [
         `${positionsAcquisesParLesRomains.length} position${positionsAcquisesParLesRomains.length === 1 ? '' : 's'} acquise${positionsAcquisesParLesRomains.length === 1 ? '' : 's'} par les Romains : ${listeCapitales(positionsAcquisesParLesRomains)}`,
         `${positionsRomainesPerdues.length} position${positionsRomainesPerdues.length === 1 ? '' : 's'} romaine${positionsRomainesPerdues.length === 1 ? '' : 's'} perdue${positionsRomainesPerdues.length === 1 ? '' : 's'} : ${listeCapitales(positionsRomainesPerdues)}`
