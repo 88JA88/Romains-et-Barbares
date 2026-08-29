@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#222222">
+  <title>Installer Romains et Barbares</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./ASSETS/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./ASSETS/icons/icon-192.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --fond: #222222;
+      --carte: #2b2b2b;
+      --texte: #f5f5f5;
+      --secondaire: #c4c4c4;
+      --accent: #397fb3;
+      --accent-fonce: #245b84;
+      --bordure: #555555;
+      --ombre: 0 22px 55px rgb(0 0 0 / 38%);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: max(22px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+        max(22px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      background:
+        radial-gradient(circle at 12% 8%, rgb(57 127 179 / 25%), transparent 30%),
+        linear-gradient(145deg, #303030, var(--fond));
+      color: var(--texte);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 780px);
+      overflow: hidden;
+      border: 1px solid var(--bordure);
+      border-radius: 28px;
+      background: var(--carte);
+      box-shadow: var(--ombre);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 36px 40px 28px;
+      border-bottom: 1px solid var(--bordure);
+    }
+
+    .logo {
+      width: 116px;
+      height: 116px;
+      flex: 0 0 auto;
+      border-radius: 18px;
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--texte);
+      font-size: clamp(1.9rem, 5vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .contenu { padding: 30px 40px 36px; }
+
+    .introduction {
+      margin: 0 0 24px;
+      color: var(--secondaire);
+      font-size: 1.06rem;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .bouton {
+      min-height: 58px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      padding: 14px 18px;
+      font: inherit;
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    .bouton:hover { transform: translateY(-1px); }
+    .bouton:focus-visible { outline: 3px solid rgb(101 184 255 / 45%); outline-offset: 3px; }
+    .bouton:disabled { cursor: default; opacity: 0.65; transform: none; }
+
+    .principal {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 9px 22px rgb(57 127 179 / 32%);
+    }
+
+    .principal:hover { background: var(--accent-fonce); }
+    .secondaire { background: var(--carte); color: #65b8ff; }
+    .secondaire:hover { background: #353535; }
+
+    .etat {
+      min-height: 24px;
+      margin: 14px 0 0;
+      color: var(--secondaire);
+      font-size: 0.94rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .aide {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border: 1px solid var(--bordure);
+      border-radius: 16px;
+      background: #333333;
+    }
+
+    .aide[hidden] { display: none; }
+    .aide h2 { margin: 0 0 8px; color: #65b8ff; font-size: 1.08rem; }
+    .aide p { margin: 0; color: var(--secondaire); line-height: 1.5; }
+
+    footer {
+      padding: 0 40px 30px;
+      color: #a7a7a7;
+      font-size: 0.86rem;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      main { border-radius: 22px; }
+      header { align-items: flex-start; gap: 16px; padding: 26px 22px 22px; }
+      .logo { width: 82px; height: 82px; }
+      .contenu { padding: 24px 22px 28px; }
+      .actions { grid-template-columns: 1fr; }
+      footer { padding: 0 22px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img class="logo" src="./ASSETS/icons/icon-192.png" alt="Logo JA — Romains et Barbares">
+      <h1>Romains et Barbares</h1>
+    </header>
+
+    <section class="contenu" aria-labelledby="bienvenue">
+      <p class="introduction" id="bienvenue">
+        Installez le jeu pour le retrouver facilement sur votre appareil et pouvoir jouer hors connexion en mode local.
+      </p>
+
+      <div class="actions">
+        <button class="bouton principal" id="installer" type="button">Installer l’application</button>
+        <a class="bouton secondaire" href="./index.html">Ouvrir le jeu</a>
+      </div>
+
+      <p class="etat" id="etat" role="status" aria-live="polite">Le jeu reste accessible en ligne en cliquant sur « Ouvrir le jeu ».</p>
+
+      <div class="aide" id="aide" hidden>
+        <h2 id="titre-aide">Installation depuis le navigateur</h2>
+        <p id="texte-aide"></p>
+      </div>
+    </section>
+
+    <footer>Le premier chargement nécessite Internet. Le mode local pourra ensuite fonctionner hors connexion.</footer>
+  </main>
+
+  <noscript>JavaScript doit être activé pour proposer l’installation. Vous pouvez néanmoins ouvrir le jeu.</noscript>
+
+  <script>
+    (() => {
+      const boutonInstaller = document.getElementById("installer");
+      const etat = document.getElementById("etat");
+      const aide = document.getElementById("aide");
+      const titreAide = document.getElementById("titre-aide");
+      const texteAide = document.getElementById("texte-aide");
+      const agent = navigator.userAgent.toLowerCase();
+      const estIOS = /iphone|ipad|ipod/.test(agent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const estSafari = /safari/.test(agent) && !/chrome|crios|android|edg|opr/.test(agent);
+      const estInstallee = window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+      let propositionInstallation = null;
+
+      function afficherAide() {
+        aide.hidden = false;
+
+        if (estIOS) {
+          titreAide.textContent = "Installer sur iPad ou iPhone";
+          texteAide.textContent = "Dans Safari, touchez Partager, puis Sur l’écran d’accueil. Activez Ouvrir comme app web et touchez Ajouter.";
+        } else if (estSafari) {
+          titreAide.textContent = "Installer avec Safari sur Mac";
+          texteAide.textContent = "Choisissez Fichier → Ajouter au Dock, puis confirmez avec Ajouter.";
+        } else {
+          titreAide.textContent = "Installer depuis ce navigateur";
+          texteAide.textContent = "Ouvrez le menu du navigateur et choisissez Installer l’application, Installer la page en tant qu’appli ou Ajouter à l’écran d’accueil.";
+        }
+
+        aide.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      if (estInstallee) {
+        boutonInstaller.textContent = "Application déjà installée";
+        boutonInstaller.disabled = true;
+        etat.textContent = "Vous pouvez ouvrir directement le jeu.";
+      } else {
+        boutonInstaller.addEventListener("click", async () => {
+          if (!propositionInstallation) {
+            afficherAide();
+            return;
+          }
+
+          propositionInstallation.prompt();
+          const choix = await propositionInstallation.userChoice;
+          propositionInstallation = null;
+          etat.textContent = choix.outcome === "accepted"
+            ? "Installation confirmée. Vous pouvez maintenant ouvrir le jeu."
+            : "Installation non effectuée. Vous pourrez la relancer depuis cette page.";
+        });
+      }
+
+      window.addEventListener("beforeinstallprompt", (evenement) => {
+        evenement.preventDefault();
+        propositionInstallation = evenement;
+        etat.textContent = "L’installation directe est disponible sur ce navigateur.";
+      });
+
+      window.addEventListener("appinstalled", () => {
+        propositionInstallation = null;
+        boutonInstaller.textContent = "Application installée";
+        boutonInstaller.disabled = true;
+        aide.hidden = true;
+        etat.textContent = "Installation terminée. Vous pouvez maintenant ouvrir le jeu.";
+      });
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./service-worker.js").catch(() => {
+            etat.textContent = "Le jeu reste accessible en ligne en cliquant sur « Ouvrir le jeu ».";
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
