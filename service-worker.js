@@ -1,10 +1,9 @@
 "use strict";
 
-const NOM_CACHE = "romains-barbares-v2";
+const NOM_CACHE = "romains-barbares-v3";
 
 const FICHIERS_ESSENTIELS = [
   "./",
-  "./accueil.html",
   "./index.html",
   "./manifest.webmanifest",
   "./carte.svg",

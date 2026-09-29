@@ -4,7 +4,7 @@
   "short_name": "Romains et Barbares",
   "description": "Jeu de stratégie opposant les Romains aux Barbares.",
   "lang": "fr",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

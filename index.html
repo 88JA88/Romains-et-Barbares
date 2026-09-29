@@ -204,16 +204,41 @@
       margin: 0;
     }
 
-    #commencer {
+    #commencer,
+    #actualiser-application {
       width: 100%;
-      margin-top: 16px;
       padding: 11px;
-      border: 0;
       border-radius: 7px;
-      background: #e6e6e6;
-      color: #222;
       font: 700 17px Arial, sans-serif;
       cursor: pointer;
+    }
+
+    #commencer {
+      margin-top: 16px;
+      border: 0;
+      background: #e6e6e6;
+      color: #222;
+    }
+
+    #actualiser-application {
+      margin-top: 10px;
+      border: 1px solid #777;
+      background: #363636;
+      color: #fff;
+    }
+
+    #actualiser-application:disabled {
+      cursor: default;
+      opacity: 0.65;
+    }
+
+    #etat-actualisation {
+      min-height: 20px;
+      margin: 9px 0 0;
+      color: #c4c4c4;
+      font-size: 13px;
+      line-height: 1.35;
+      text-align: center;
     }
   </style>
 </head>
@@ -258,6 +283,8 @@
         <input id="coups-par-tour" type="number" min="1" step="1" value="2">
       </label>
       <button id="commencer" type="button">Commencer la partie</button>
+      <button id="actualiser-application" type="button">Actualiser l’application</button>
+      <p id="etat-actualisation" role="status" aria-live="polite">Vérification automatique de la version…</p>
     </div>
   </section>
   <dialog id="regles" aria-labelledby="titre-regles">
@@ -315,7 +342,10 @@
     const coupsRestants = document.getElementById('coups-restants');
     const boutonPasserMain = document.getElementById('passer-main');
     const boutonEvaluerCampagne = document.getElementById('evaluer-campagne');
+    const boutonActualiserApplication = document.getElementById('actualiser-application');
+    const etatActualisation = document.getElementById('etat-actualisation');
     const modeJeu = document.getElementById('mode-jeu');
+    const versionApplication = 'V3';
     let configurationJoueursActive = { mode: 'ordinateur', campHumain: 'blue' };
     let origineDecisionCampagne = 'joueur';
 
@@ -428,11 +458,87 @@
       demarrage.hidden = true;
     });
 
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
-      });
+    async function actualiserApplication() {
+      if (!navigator.onLine) {
+        etatActualisation.textContent = `Mode hors connexion — Version ${versionApplication} enregistrée.`;
+        return;
+      }
+
+      if (!('serviceWorker' in navigator)) {
+        etatActualisation.textContent = 'Ce navigateur ne permet pas de vérifier automatiquement les mises à jour.';
+        return;
+      }
+
+      boutonActualiserApplication.disabled = true;
+      etatActualisation.textContent = 'Recherche de la dernière version…';
+      let miseAJourEnCours = false;
+
+      try {
+        let inscription = await navigator.serviceWorker.getRegistration();
+
+        if (!inscription) {
+          inscription = await navigator.serviceWorker.register('./service-worker.js');
+          await navigator.serviceWorker.ready;
+          etatActualisation.textContent = `Version ${versionApplication} installée.`;
+          return;
+        }
+
+        let nouveauServiceWorker = inscription.installing || inscription.waiting;
+
+        if (!nouveauServiceWorker) {
+          let serviceWorkerTrouve = null;
+          const memoriserServiceWorker = () => {
+            serviceWorkerTrouve = inscription.installing;
+          };
+
+          inscription.addEventListener('updatefound', memoriserServiceWorker, { once: true });
+          await inscription.update();
+          inscription.removeEventListener('updatefound', memoriserServiceWorker);
+          nouveauServiceWorker = serviceWorkerTrouve || inscription.installing || inscription.waiting;
+        }
+
+        if (!nouveauServiceWorker) {
+          etatActualisation.textContent = `L’application est déjà à jour — Version ${versionApplication}.`;
+          return;
+        }
+
+        etatActualisation.textContent = `Installation de la Version ${versionApplication}…`;
+        miseAJourEnCours = true;
+
+        const recharger = () => {
+          if (rechargementMiseAJourLance) return;
+          rechargementMiseAJourLance = true;
+          window.location.reload();
+        };
+
+        navigator.serviceWorker.addEventListener('controllerchange', recharger, { once: true });
+        nouveauServiceWorker.addEventListener('statechange', () => {
+          if (nouveauServiceWorker.state === 'installed') {
+            nouveauServiceWorker.postMessage({ type: 'activer-mise-a-jour' });
+          }
+          if (nouveauServiceWorker.state === 'activated') recharger();
+          if (nouveauServiceWorker.state === 'redundant') {
+            boutonActualiserApplication.disabled = false;
+            etatActualisation.textContent = 'L’actualisation a échoué. Vérifiez votre connexion et réessayez.';
+          }
+        });
+
+        if (nouveauServiceWorker.state === 'installed') {
+          nouveauServiceWorker.postMessage({ type: 'activer-mise-a-jour' });
+        }
+        if (nouveauServiceWorker.state === 'activated') recharger();
+      } catch (erreur) {
+        etatActualisation.textContent = 'L’actualisation a échoué. Vérifiez votre connexion et réessayez.';
+      } finally {
+        if (!miseAJourEnCours) {
+          boutonActualiserApplication.disabled = false;
+        }
+      }
     }
+
+    let rechargementMiseAJourLance = false;
+    boutonActualiserApplication.addEventListener('click', actualiserApplication);
+    window.addEventListener('load', actualiserApplication);
   </script>
 </body>
 </html>
