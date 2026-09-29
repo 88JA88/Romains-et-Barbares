@@ -82,7 +82,7 @@
 
     .actions {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 14px;
     }
 
@@ -171,6 +171,7 @@
       <div class="actions">
         <button class="bouton principal" id="installer" type="button">Installer l’application</button>
         <a class="bouton secondaire" href="./index.html">Ouvrir le jeu</a>
+        <button class="bouton secondaire" id="actualiser" type="button">Actualiser l’application</button>
       </div>
 
       <p class="etat" id="etat" role="status" aria-live="polite">Le jeu reste accessible en ligne en cliquant sur « Ouvrir le jeu ».</p>
@@ -189,6 +190,7 @@
   <script>
     (() => {
       const boutonInstaller = document.getElementById("installer");
+      const boutonActualiser = document.getElementById("actualiser");
       const etat = document.getElementById("etat");
       const aide = document.getElementById("aide");
       const titreAide = document.getElementById("titre-aide");
@@ -250,6 +252,83 @@
         boutonInstaller.disabled = true;
         aide.hidden = true;
         etat.textContent = "Installation terminée. Vous pouvez maintenant ouvrir le jeu.";
+      });
+
+      boutonActualiser.addEventListener("click", async () => {
+        if (!navigator.onLine) {
+          etat.textContent = "Une connexion Internet est nécessaire pour actualiser l’application.";
+          return;
+        }
+
+        boutonActualiser.disabled = true;
+        etat.textContent = "Recherche de la dernière version…";
+
+        try {
+          if (!("serviceWorker" in navigator)) {
+            boutonActualiser.disabled = false;
+            etat.textContent = "Ce navigateur ne permet pas de vérifier automatiquement les mises à jour.";
+            return;
+          }
+
+          let inscription = await navigator.serviceWorker.getRegistration();
+
+          if (!inscription) {
+            inscription = await navigator.serviceWorker.register("./service-worker.js");
+            await navigator.serviceWorker.ready;
+            etat.textContent = "La dernière version a été installée. Rechargement…";
+            window.location.reload();
+            return;
+          }
+
+          let nouveauServiceWorker = inscription.installing || inscription.waiting;
+
+          if (!nouveauServiceWorker) {
+            let serviceWorkerTrouve = null;
+            const memoriserServiceWorker = () => {
+              serviceWorkerTrouve = inscription.installing;
+            };
+
+            inscription.addEventListener("updatefound", memoriserServiceWorker, { once: true });
+            await inscription.update();
+            inscription.removeEventListener("updatefound", memoriserServiceWorker);
+            nouveauServiceWorker = serviceWorkerTrouve || inscription.installing || inscription.waiting;
+          }
+
+          if (!nouveauServiceWorker) {
+            boutonActualiser.disabled = false;
+            etat.textContent = "L’application est déjà à jour.";
+            return;
+          }
+
+          etat.textContent = "Une nouvelle version est disponible. Actualisation…";
+          let rechargementLance = false;
+
+          const recharger = () => {
+            if (rechargementLance) return;
+            rechargementLance = true;
+            window.location.reload();
+          };
+
+          navigator.serviceWorker.addEventListener("controllerchange", recharger, { once: true });
+          nouveauServiceWorker.addEventListener("statechange", () => {
+            if (nouveauServiceWorker.state === "installed") {
+              nouveauServiceWorker.postMessage({ type: "activer-mise-a-jour" });
+            }
+            if (nouveauServiceWorker.state === "activated") recharger();
+            if (nouveauServiceWorker.state === "redundant") {
+              boutonActualiser.disabled = false;
+              etat.textContent = "L’actualisation a échoué. Vérifiez votre connexion et réessayez.";
+            }
+          });
+
+          if (nouveauServiceWorker.state === "installed") {
+            nouveauServiceWorker.postMessage({ type: "activer-mise-a-jour" });
+          }
+          if (nouveauServiceWorker.state === "activated") recharger();
+        } catch (erreur) {
+          boutonActualiser.disabled = false;
+          etat.textContent = "L’actualisation a échoué. Vérifiez votre connexion et réessayez.";
+        }
       });
 
       if ("serviceWorker" in navigator) {

@@ -1,6 +1,6 @@
 "use strict";
 
-const NOM_CACHE = "romains-barbares-v1";
+const NOM_CACHE = "romains-barbares-v2";
 
 const FICHIERS_ESSENTIELS = [
   "./",
@@ -25,6 +25,12 @@ self.addEventListener("install", function(evenement) {
   );
 });
 
+self.addEventListener("message", function(evenement) {
+  if (evenement.data?.type === "activer-mise-a-jour") {
+    evenement.waitUntil(self.skipWaiting());
+  }
+});
+
 self.addEventListener("activate", function(evenement) {
   evenement.waitUntil(
     caches.keys().then(function(nomsCaches) {
@@ -38,6 +44,8 @@ self.addEventListener("activate", function(evenement) {
             return caches.delete(nomCache);
           })
       );
+    }).then(function() {
+      return self.clients.claim();
     })
   );
 });

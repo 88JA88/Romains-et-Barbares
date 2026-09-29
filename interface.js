@@ -255,6 +255,7 @@
       return;
     }
     texte.textContent = message;
+    positionnerBoutonAnnuler();
   }
 
   function actualiserSurbrillanceReseau() {
@@ -314,6 +315,19 @@
   function actualiserBoutonAnnuler() {
     boutonAnnuler.classList.toggle('inactif', historique.length <= debutTour);
     window.parent.postMessage({ type: 'scores-jeu', ...calculerScores() }, '*');
+  }
+
+  function positionnerBoutonAnnuler() {
+    const boiteTexte = texte.getBBox();
+    const largeurBouton = 150;
+    const marge = 12;
+    const limiteDroite = 1448 - largeurBouton - 18;
+    const positionX = Math.min(
+      limiteDroite,
+      18 + boiteTexte.x + boiteTexte.width + marge
+    );
+
+    boutonAnnuler.setAttribute('transform', `translate(${Math.ceil(positionX)} 18)`);
   }
 
   window.addEventListener('message', evenement => {
