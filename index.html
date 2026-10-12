@@ -28,7 +28,7 @@
       gap: 36px;
       min-height: 54px;
       padding: 12px 18px;
-      color: #fff;
+      color: #000;
       font-size: 22px;
       font-weight: 700;
     }
@@ -47,13 +47,43 @@
     #joueur-actif[data-joueur="red"] { color: #ff7769; }
 
     #passer-main {
-      padding: 7px 12px;
-      border: 1px solid #888;
-      border-radius: 7px;
-      background: #e6e6e6;
-      color: #222;
-      font: 700 14px Arial, sans-serif;
+      position: absolute;
+      z-index: 1;
+      top: 6.45%;
+      left: 12.43%;
+      padding: 8px;
+      border: 2.5px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      color: #000;
+      font: 400 clamp(10px, 1.15vw, 16px) Arial, sans-serif;
       cursor: pointer;
+    }
+
+    #passer-main::before {
+      content: '→';
+      margin-right: 7px;
+      font-size: 1.35em;
+      vertical-align: -0.05em;
+    }
+
+    #passer-main[data-joueur="blue"] { border-color: #65b8ff; }
+    #passer-main[data-joueur="red"] { border-color: #ff7769; }
+
+    #passer-main.est-signale {
+      animation: signaler-passer-main 0.3s ease-in-out 4;
+    }
+
+    @keyframes signaler-passer-main {
+      0%, 100% {
+        color: #000;
+        box-shadow: none;
+      }
+      50% {
+        color: #f0c94d;
+        border-color: #f0c94d;
+        box-shadow: 0 0 8px #f0c94d;
+      }
     }
 
     #passer-main:disabled {
@@ -248,13 +278,13 @@
     <span class="score-rouge">Barbares : <output id="score-rouge">0</output></span>
     <span class="tour-actif">Tour : <strong id="joueur-actif" data-joueur="blue">Romains</strong></span>
     <span class="tour-actif">Coups restants : <output id="coups-restants">—</output></span>
-    <button id="passer-main" type="button" disabled hidden>Passer la main</button>
     <button id="evaluer-campagne" type="button" disabled>Évaluer la campagne</button>
     <button id="nouvelle-partie" type="button">Nouvelle partie</button>
     <button id="ouvrir-regles" type="button">Règles du jeu</button>
   </header>
   <main class="carte" aria-label="Carte superposant le fond, les routes et les lieux">
     <object id="carte-jeu" class="couche" data="carte.svg" type="image/svg+xml" aria-label="Carte avec routes, carrefours et capitales"></object>
+    <button id="passer-main" type="button" disabled hidden>Passer la main</button>
   </main>
   <section id="demarrage" class="demarrage" aria-labelledby="titre-demarrage">
     <div class="panneau">
@@ -268,15 +298,15 @@
       </div>
       <label class="parametre">
         <span>Carrefour</span>
-        <input id="valeur-noeud" type="number" min="0" step="0.5" value="0.5">
+        <input id="valeur-noeud" type="number" min="0" step="0.5" value="1">
       </label>
       <label class="parametre">
         <span>Capitale romaine</span>
-        <input id="valeur-capitale-bleue" type="number" min="0" step="0.5" value="1">
+        <input id="valeur-capitale-bleue" type="number" min="0" step="0.5" value="2">
       </label>
       <label class="parametre">
         <span>Capitale barbare</span>
-        <input id="valeur-capitale-rouge" type="number" min="0" step="0.5" value="1">
+        <input id="valeur-capitale-rouge" type="number" min="0" step="0.5" value="2">
       </label>
       <label class="parametre">
         <span>Coups par tour</span>
@@ -293,7 +323,7 @@
     <h3>But du jeu</h3>
     <p>La carte montre le monde romain en lutte contre les Barbares. L’Empire romain, en bleu, et les camps barbares, en rouge, possèdent chacun sept capitales ; certaines capitales barbares étant déjà acquises aux Romains et inversement. Cinq capitales (en vert) sont neutres et susceptibles d’être conquises.</p>
     <p>Le but du jeu consiste à poursuivre cette lutte en créant un réseau de positions qui uniront leurs forces pour attaquer et conquérir une position ennemie ou défendre une position acquise.</p>
-    <p>Sur un même réseau, une capitale vaut 1 point et un carrefour 0,5 point (valeurs paramétrables en début de partie).</p>
+    <p>Une capitale vaut 2 points et un carrefour 1 point (valeurs paramétrables en début de partie). La valeur d’un point est sa valeur propre, ajoutée à celle de ses alliés directement reliés par une route de son camp.</p>
 
     <h3>Construire un réseau</h3>
     <ol>
@@ -305,10 +335,10 @@
     </ol>
 
     <h3>Conflits</h3>
-    <p><strong>Attaque d’une capitale :</strong> la valeur totale du réseau attaquant est comparée à celle du réseau défendant la capitale. Si l’attaquant gagne, il conquiert la capitale et les routes adverses qui l’entourent redeviennent neutres. S’il perd, la route d’attaque redevient neutre.</p>
-    <p><strong>Coupure d’un réseau :</strong> lorsqu’un carrefour adverse relié à des routes est attaqué, seules les forces locales sont comparées. On examine les segments de chaque camp qui convergent vers la position attaquante ou le carrefour attaqué. Chaque segment apporte la valeur du lieu situé à son autre extrémité : capitale ou carrefour. La route neutre utilisée pour attaquer ne compte pas et le reste des réseaux n’intervient pas. Si l’attaquant gagne, il conquiert le carrefour et les routes adverses qui l’entourent redeviennent neutres. S’il perd, ses propres routes autour du point de départ redeviennent neutres. Un carrefour adverse déjà isolé est conquis sans bataille.</p>
+    <p><strong>Forces en conflit :</strong> un centre attaque avec sa valeur locale (sa propre valeur et celle de ses alliés directs), tandis qu’un carrefour attaque avec la valeur de tout son réseau. Un centre se défend avec la valeur de tout son réseau, tandis qu’un carrefour se défend avec sa valeur locale. La route neutre utilisée pour attaquer ne compte pas.</p>
+    <p><strong>Résultat d’une attaque :</strong> si l’attaquant gagne une bataille pour une capitale, il la conquiert et les routes adverses qui l’entourent redeviennent neutres. Pour un carrefour, il le conquiert et les routes adverses qui l’entourent redeviennent neutres. S’il perd l’attaque d’une capitale, la route d’attaque redevient neutre ; s’il perd l’attaque d’un carrefour, ses propres routes autour du point de départ redeviennent neutres. Un carrefour adverse déjà isolé est conquis sans bataille.</p>
     <p>Dans tous les conflits, la force la plus élevée l’emporte et une égalité est départagée à 50–50. Le lieu attaqué s’anime avec un halo. La bataille peut être acceptée en cliquant sur ce lieu, ou refusée avec le bouton <strong>Annuler</strong>.</p>
-    <p>Un clic droit sur une route révèle le réseau auquel elle appartient et sa valeur. Un clic droit sur une capitale ou un carrefour affiche sa force locale.</p>
+    <p>Un clic sur une route révèle le réseau auquel elle appartient et sa valeur. Un clic sur une capitale ou un carrefour affiche sa force locale. Pour jouer un coup, faites glisser un point de votre camp vers un point voisin.</p>
 
     <h3>Score</h3>
     <p>Le score de chaque camp est affiché en permanence en haut de l’écran. Toute position qui reste colorée compte dans le score, même si ses routes ont été coupées.</p>
@@ -377,6 +407,7 @@
       }
       if (evenement.data?.type === 'joueur-actif') {
         afficherJoueurActif(evenement.data.joueur);
+        boutonPasserMain.dataset.joueur = evenement.data.joueur;
         const tourOrdinateur = configurationJoueursActive.mode === 'ordinateur'
           && evenement.data.joueur !== configurationJoueursActive.campHumain;
         boutonPasserMain.disabled = tourOrdinateur;
@@ -387,6 +418,11 @@
         const tourOrdinateur = configurationJoueursActive.mode === 'ordinateur'
           && evenement.data.joueur !== configurationJoueursActive.campHumain;
         boutonPasserMain.hidden = tourOrdinateur || evenement.data.coupsRestants > 0;
+      }
+      if (evenement.data?.type === 'passer-main-requis' && !boutonPasserMain.hidden) {
+        boutonPasserMain.classList.remove('est-signale');
+        void boutonPasserMain.offsetWidth;
+        boutonPasserMain.classList.add('est-signale');
       }
       if (evenement.data?.type === 'tour-ordinateur-termine') {
         carte.contentWindow.postMessage({
@@ -438,6 +474,9 @@
     boutonPasserMain.addEventListener('click', () => {
       const prochainJoueur = joueurActif.dataset.joueur === 'blue' ? 'red' : 'blue';
       carte.contentWindow.postMessage({ type: 'changer-joueur', joueur: prochainJoueur }, '*');
+    });
+    boutonPasserMain.addEventListener('animationend', () => {
+      boutonPasserMain.classList.remove('est-signale');
     });
 
     document.getElementById('commencer').addEventListener('click', () => {

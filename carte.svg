@@ -73,13 +73,18 @@
       opacity: 0.45;
     }
     #texte-selection {
-      fill: #ffffff;
-      font: 700 18px Arial, sans-serif;
+      fill: #f0c94d;
+      font: 400 18px Arial, sans-serif;
     }
     #texte-annuler {
-      fill: #222222;
-      font: 700 18px Arial, sans-serif;
+      fill: #000000;
+      font: 400 18px Arial, sans-serif;
       text-anchor: middle;
+      pointer-events: none;
+    }
+    #texte-icone-annuler {
+      fill: #000000;
+      font: 400 25px Arial, sans-serif;
       pointer-events: none;
     }
   </style>
@@ -274,9 +279,10 @@
       <rect id="fond-indicateur-selection" width="650" height="40" rx="6" fill="#666666" fill-opacity="0.92"/>
       <text id="texte-selection" x="14" y="26">Choisissez un lieu des Romains ou des Barbares</text>
     </g>
-    <g id="bouton-annuler" class="inactif" transform="translate(1280 18)">
-      <rect width="150" height="40" rx="6" fill="#eeeeee" stroke="#555555"/>
-      <text id="texte-annuler" x="75" y="26">Annuler</text>
+    <g id="bouton-annuler" class="inactif" transform="translate(18 70)">
+      <rect width="150" height="40" rx="6" fill="transparent" stroke="none"/>
+      <text id="texte-icone-annuler" x="14" y="28">↶</text>
+      <text id="texte-annuler" x="91" y="26">Annuler</text>
     </g>
     <script href="moteur.js"></script>
     <script href="ia.js"></script>

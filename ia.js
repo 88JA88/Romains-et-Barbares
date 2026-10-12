@@ -6,6 +6,18 @@
     return deuxCapitales || noeudVersCapitale || deuxNoeuds;
   }
 
+  function calculerForceAttaqueConflit(point, moteur) {
+    return point.classList.contains('place')
+      ? moteur.calculerForceLocale(point, point.dataset.owner)
+      : moteur.calculerValeurReseau(moteur.recenserReseau(point));
+  }
+
+  function calculerForceDefenseConflit(point, moteur) {
+    return point.classList.contains('place')
+      ? moteur.calculerValeurReseau(moteur.recenserReseau(point))
+      : moteur.calculerForceLocale(point, point.dataset.owner);
+  }
+
   function noterAction(action, moteur) {
     const { depart, destination } = action;
     const destinationNeutre = !destination.dataset.owner;
@@ -21,24 +33,23 @@
       return destination.classList.contains('place') ? 90 : 55;
     }
 
-    const forceDefense = moteur.calculerForceLocale(destination, destination.dataset.owner);
+    const forceDefense = calculerForceDefenseConflit(destination, moteur);
 
     if (destination.classList.contains('place')) {
-      const forceAttaqueReseau = moteur.calculerValeurReseau(moteur.recenserReseau(depart));
-      const forceDefenseReseau = moteur.calculerValeurReseau(moteur.recenserReseau(destination));
-      if (forceAttaqueReseau < forceDefenseReseau) return -1;
-      const risqueEgalite = forceAttaqueReseau === forceDefenseReseau ? 25 : 0;
-      return 130 + (forceAttaqueReseau - forceDefenseReseau) * 10 - risqueEgalite;
+      const forceAttaqueConflit = calculerForceAttaqueConflit(depart, moteur);
+      if (forceAttaqueConflit < forceDefense) return -1;
+      const risqueEgalite = forceAttaqueConflit === forceDefense ? 25 : 0;
+      return 130 + (forceAttaqueConflit - forceDefense) * 10 - risqueEgalite;
     }
 
     if (forceDefense === 0) return 105;
 
-    const forceAttaque = moteur.calculerForceLocale(depart, depart.dataset.owner);
-    if (forceAttaque < forceDefense) return -1;
+    const forceAttaqueConflit = calculerForceAttaqueConflit(depart, moteur);
+    if (forceAttaqueConflit < forceDefense) return -1;
 
     const routesCoupees = forceDefense;
-    const risqueEgalite = forceAttaque === forceDefense ? 25 : 0;
-    return 110 + routesCoupees * 8 + (forceAttaque - forceDefense) * 10 - risqueEgalite;
+    const risqueEgalite = forceAttaqueConflit === forceDefense ? 25 : 0;
+    return 110 + routesCoupees * 8 + (forceAttaqueConflit - forceDefense) * 10 - risqueEgalite;
   }
 
   function identifiantAction(action) {
@@ -58,8 +69,8 @@
         && action.destination.classList.contains('place')
       )
       .map(action => {
-        const forceAttaque = moteur.calculerValeurReseau(moteur.recenserReseau(action.depart));
-        const forceDefense = moteur.calculerValeurReseau(moteur.recenserReseau(action.destination));
+        const forceAttaque = calculerForceAttaqueConflit(action.depart, moteur);
+        const forceDefense = calculerForceDefenseConflit(action.destination, moteur);
         return {
           ...action,
           forceAttaque,
@@ -92,14 +103,8 @@
         && action.destination.classList.contains('node')
       )
       .map(action => {
-        const forceAttaque = moteur.calculerForceLocale(
-          action.depart,
-          action.depart.dataset.owner
-        );
-        const forceDefense = moteur.calculerForceLocale(
-          action.destination,
-          action.destination.dataset.owner
-        );
+        const forceAttaque = calculerForceAttaqueConflit(action.depart, moteur);
+        const forceDefense = calculerForceDefenseConflit(action.destination, moteur);
         return {
           ...action,
           forceAttaque,

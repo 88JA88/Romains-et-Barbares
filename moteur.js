@@ -1,9 +1,9 @@
 (() => {
   function creer(segments, points) {
     let valeurs = {
-      noeud: 0.5,
-      capitaleBleue: 1,
-      capitaleRouge: 1
+      noeud: 1,
+      capitaleBleue: 2,
+      capitaleRouge: 2
     };
 
     function configurerValeurs(nouvellesValeurs) {
@@ -113,7 +113,7 @@
             : segment.dataset.a;
           const autreExtremite = pointsParId.get(autreExtremiteId);
           return force + (autreExtremite ? valeurStrategique(autreExtremite) : 0);
-        }, 0);
+        }, valeurStrategique(point));
     }
 
     function calculerValeurReseau(reseau) {
