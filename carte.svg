@@ -67,6 +67,7 @@
     }
     #bouton-annuler {
       cursor: pointer;
+      display: none;
     }
     #bouton-annuler.inactif {
       cursor: default;

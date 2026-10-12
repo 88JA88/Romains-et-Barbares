@@ -39,6 +39,8 @@
   let ignorerProchainClic = false;
   const delaiLectureMouvementIA = 2000;
   const delaiResolutionConflitIA = 900;
+  const delaiPassageAutomatique = 2000;
+  let minuteriePassageAutomatique = null;
 
   function estTourOrdinateur() {
     return configurationJoueurs.mode === 'ordinateur'
@@ -121,9 +123,26 @@
     }, '*');
   }
 
+  function annulerPassageAutomatique() {
+    clearTimeout(minuteriePassageAutomatique);
+    minuteriePassageAutomatique = null;
+  }
+
+  function programmerPassageAutomatique() {
+    if (estTourOrdinateur()) return;
+    annulerPassageAutomatique();
+    texte.textContent = 'Dernier coup joué — double-cliquez sur le dernier segment pour annuler';
+    minuteriePassageAutomatique = setTimeout(() => {
+      minuteriePassageAutomatique = null;
+      const prochainJoueur = joueurActif === 'blue' ? 'red' : 'blue';
+      window.parent.postMessage({ type: 'passage-automatique', joueur: prochainJoueur }, '*');
+    }, delaiPassageAutomatique);
+  }
+
   function enregistrerCoup() {
     coupsJoues += 1;
     publierEtatTour();
+    if (coupsJoues >= coupsParTour) programmerPassageAutomatique();
   }
 
   function ajusterLargeurIndicateur() {
@@ -370,6 +389,7 @@
     }
 
     if (evenement.data?.type === 'changer-joueur') {
+      annulerPassageAutomatique();
       if (conflitActif) {
         texte.textContent = `La bataille pour ${nomPoint(conflitActif.lieu)} doit être résolue avant de passer la main`;
         return;
@@ -470,6 +490,7 @@
       return;
     }
 
+    annulerPassageAutomatique();
     const action = historique.pop();
     action.segment.dataset.owner = action.segmentOwner;
     restaurerAttribut(action.segment, 'stroke', action.segmentStroke);
@@ -761,8 +782,9 @@
       const segmentAllie = segmentEntre(depart.id, point.id);
       const deuxCapitales = depart.classList.contains('place') && point.classList.contains('place');
       const noeudVersCapitale = depart.classList.contains('node') && point.classList.contains('place');
+      const capitaleVersNoeud = depart.classList.contains('place') && point.classList.contains('node');
       const deuxNoeuds = depart.classList.contains('node') && point.classList.contains('node');
-      if ((deuxCapitales || noeudVersCapitale || deuxNoeuds) && segmentAllie && !segmentAllie.dataset.owner) {
+      if ((deuxCapitales || noeudVersCapitale || capitaleVersNoeud || deuxNoeuds) && segmentAllie && !segmentAllie.dataset.owner) {
         relierPointsAllies(point, segmentAllie);
         return;
       }
@@ -848,6 +870,13 @@
       }
       annulerDepart();
       afficherChaineDuSegment(segment);
+    });
+    zone.addEventListener('dblclick', evenement => {
+      evenement.preventDefault();
+      evenement.stopPropagation();
+      const derniereAction = historique.at(-1);
+      if (derniereAction?.segment !== segment || historique.length <= debutTour) return;
+      annulerDerniereAction();
     });
   });
 

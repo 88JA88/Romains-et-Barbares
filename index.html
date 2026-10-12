@@ -415,14 +415,15 @@
       }
       if (evenement.data?.type === 'etat-tour') {
         coupsRestants.value = evenement.data.coupsRestants;
-        const tourOrdinateur = configurationJoueursActive.mode === 'ordinateur'
-          && evenement.data.joueur !== configurationJoueursActive.campHumain;
-        boutonPasserMain.hidden = tourOrdinateur || evenement.data.coupsRestants > 0;
+        boutonPasserMain.hidden = true;
       }
       if (evenement.data?.type === 'passer-main-requis' && !boutonPasserMain.hidden) {
         boutonPasserMain.classList.remove('est-signale');
         void boutonPasserMain.offsetWidth;
         boutonPasserMain.classList.add('est-signale');
+      }
+      if (evenement.data?.type === 'passage-automatique') {
+        carte.contentWindow.postMessage({ type: 'changer-joueur', joueur: evenement.data.joueur }, '*');
       }
       if (evenement.data?.type === 'tour-ordinateur-termine') {
         carte.contentWindow.postMessage({

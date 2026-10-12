@@ -2,8 +2,9 @@
   function estLiaisonAllieeAutorisee(depart, destination) {
     const deuxCapitales = depart.classList.contains('place') && destination.classList.contains('place');
     const noeudVersCapitale = depart.classList.contains('node') && destination.classList.contains('place');
+    const capitaleVersNoeud = depart.classList.contains('place') && destination.classList.contains('node');
     const deuxNoeuds = depart.classList.contains('node') && destination.classList.contains('node');
-    return deuxCapitales || noeudVersCapitale || deuxNoeuds;
+    return deuxCapitales || noeudVersCapitale || capitaleVersNoeud || deuxNoeuds;
   }
 
   function calculerForceAttaqueConflit(point, moteur) {
