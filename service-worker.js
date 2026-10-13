@@ -1,6 +1,6 @@
 "use strict";
 
-const NOM_CACHE = "romains-barbares-v3";
+const NOM_CACHE = "romains-barbares-v4";
 
 const FICHIERS_ESSENTIELS = [
   "./",

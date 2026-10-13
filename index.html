@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#222222">
   <title>Romains et Barbares — jeu de stratégie</title>
+  <meta name="application-name" content="Romains et Barbares">
+  <meta name="apple-mobile-web-app-title" content="Romains et Barbares">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./ASSETS/icons/icon-192.png">
   <link rel="apple-touch-icon" href="./ASSETS/icons/icon-192.png">
@@ -514,10 +516,10 @@
       let miseAJourEnCours = false;
 
       try {
-        let inscription = await navigator.serviceWorker.getRegistration();
+        let inscription = await navigator.serviceWorker.getRegistration('./');
 
         if (!inscription) {
-          inscription = await navigator.serviceWorker.register('./service-worker.js');
+          inscription = await navigator.serviceWorker.register('./service-worker.js', { scope: './' });
           await navigator.serviceWorker.ready;
           etatActualisation.textContent = `Version ${versionApplication} installée.`;
           return;
